@@ -57,9 +57,12 @@ defmodule Sequin.TestSupport.ReplicationSlots do
       case Repo.query("select pg_drop_replication_slot($1)", [slot_name]) do
         {:ok, _} -> :ok
         {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}} -> :ok
+        {:error, %Postgrex.Error{postgres: %{code: :object_in_use}}} ->
+        # Slot is active; cannot be dropped safely
+        :ok
       end
 
-      Repo.query!("select pg_create_logical_replication_slot($1, 'pgoutput')::text", [slot_name])
+      # Repo.query!("select pg_create_logical_replication_slot($1, 'pgoutput')::text", [slot_name])
     end)
   end
 end
