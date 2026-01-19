@@ -33,7 +33,7 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps(type: :utc_datetime)
     end
 
-    create unique_index(:users, [:email], prefix: @config_schema)
+    # create unique_index(:users, [:email], prefix: @config_schema) #removal 1
 
     create unique_index(:users, [:auth_provider, :auth_provider_id],
              prefix: @config_schema,
@@ -267,23 +267,24 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps(type: :utc_datetime_usec)
     end
 
-    create index(:consumer_events, [:consumer_id, :record_pks, :table_oid],
-             prefix: @stream_schema
-           )
+    # create index(:consumer_events, [:consumer_id, :record_pks, :table_oid],
+    #          prefix: @stream_schema
+    #        ) #removal 2
 
-    create unique_index(:consumer_events, [:consumer_id, :ack_id], prefix: @stream_schema)
+    # create unique_index(:consumer_events, [:consumer_id, :ack_id], prefix: @stream_schema) #removal 4
 
     create index(:consumer_events, [:consumer_id], prefix: @stream_schema)
 
-    create index(
-             :consumer_events,
-             [
-               :consumer_id,
-               :not_visible_until,
-               :last_delivered_at
-             ],
-             prefix: @stream_schema
-           )
+    # create index(
+    #          :consumer_events,
+    #          [
+    #            :consumer_id,
+    #            :not_visible_until,
+    #            :last_delivered_at
+    #          ],
+    #          prefix: @stream_schema
+    #        )  # removal 3
+
 
     create table(:consumer_records,
              prefix: @stream_schema,
@@ -306,22 +307,22 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps(type: :utc_datetime_usec)
     end
 
-    create unique_index(:consumer_records, [:consumer_id, :record_pks, :table_oid],
-             prefix: @stream_schema
-           )
+    # create unique_index(:consumer_records, [:consumer_id, :record_pks, :table_oid],
+    #          prefix: @stream_schema
+    #        )
 
-    create unique_index(:consumer_records, [:consumer_id, :ack_id], prefix: @stream_schema)
+    # create unique_index(:consumer_records, [:consumer_id, :ack_id], prefix: @stream_schema)
 
     create index(:consumer_records, [:consumer_id], prefix: @stream_schema)
 
-    create index(
-             :consumer_records,
-             [
-               :consumer_id,
-               :not_visible_until,
-               :last_delivered_at
-             ],
-             prefix: @stream_schema
-           )
+    # create index(
+    #          :consumer_records,
+    #          [
+    #            :consumer_id,
+    #            :not_visible_until,
+    #            :last_delivered_at
+    #          ],
+    #          prefix: @stream_schema
+    #        )
   end
 end
