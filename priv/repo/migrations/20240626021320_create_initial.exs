@@ -271,19 +271,19 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
     #          prefix: @stream_schema
     #        ) #removal 2
 
-    # create unique_index(:consumer_events, [:consumer_id, :ack_id], prefix: @stream_schema) #removal 4
+    create unique_index(:consumer_events, [:consumer_id, :ack_id], prefix: @stream_schema)
 
     create index(:consumer_events, [:consumer_id], prefix: @stream_schema)
 
-    # create index(
-    #          :consumer_events,
-    #          [
-    #            :consumer_id,
-    #            :not_visible_until,
-    #            :last_delivered_at
-    #          ],
-    #          prefix: @stream_schema
-    #        )  # removal 3
+    create index(
+             :consumer_events,
+             [
+               :consumer_id,
+               :not_visible_until,
+               :last_delivered_at
+             ],
+             prefix: @stream_schema
+           )
 
 
     create table(:consumer_records,
@@ -309,20 +309,20 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
 
     # create unique_index(:consumer_records, [:consumer_id, :record_pks, :table_oid],
     #          prefix: @stream_schema
-    #        )
+    #        ) #removal 3
 
-    # create unique_index(:consumer_records, [:consumer_id, :ack_id], prefix: @stream_schema)
+    create unique_index(:consumer_records, [:consumer_id, :ack_id], prefix: @stream_schema)
 
     create index(:consumer_records, [:consumer_id], prefix: @stream_schema)
 
-    # create index(
-    #          :consumer_records,
-    #          [
-    #            :consumer_id,
-    #            :not_visible_until,
-    #            :last_delivered_at
-    #          ],
-    #          prefix: @stream_schema
-    #        )
+    create index(
+             :consumer_records,
+             [
+               :consumer_id,
+               :not_visible_until,
+               :last_delivered_at
+             ],
+             prefix: @stream_schema
+           )
   end
 end

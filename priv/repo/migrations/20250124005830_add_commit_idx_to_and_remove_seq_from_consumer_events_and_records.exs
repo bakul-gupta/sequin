@@ -61,10 +61,10 @@ defmodule Sequin.Repo.Migrations.AddCommitIdxToAndRemoveSeqFromConsumerEventsAnd
       remove :seq
     end
 
-    # create(
-    #   unique_index(:wal_events, [:wal_pipeline_id, :commit_lsn, :commit_idx],
-    #     prefix: @stream_schema
-    #   )
-    # )
+    create(
+      unique_index(:wal_events, [:wal_pipeline_id, :commit_lsn, :commit_idx],
+        prefix: @stream_schema
+      )
+    )
   end
 end
