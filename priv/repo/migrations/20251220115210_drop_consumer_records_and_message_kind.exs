@@ -123,5 +123,7 @@ defmodule Sequin.Repo.Migrations.DropConsumerRecordsAndMessageKind do
       CONSTRAINT consumer_records_pkey PRIMARY KEY (consumer_id, id)
     ) PARTITION BY LIST (consumer_id)
     """
+    execute "ALTER TABLE #{@stream_schema}.consumer_records REPLICA IDENTITY FULL",""
+
   end
 end

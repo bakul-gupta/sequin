@@ -18,6 +18,8 @@ defmodule Sequin.Repo.Migrations.CreateTransformsTable do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.transforms REPLICA IDENTITY FULL",""
+
     create unique_index(:transforms, [:account_id, :name], prefix: @config_schema)
     create index(:transforms, [:account_id], prefix: @config_schema)
     create index(:transforms, [:sequence_id], prefix: @config_schema)

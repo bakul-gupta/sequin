@@ -72,3 +72,7 @@ test-config/
 typesense-data/
 meilisearch-data/
 .expert/
+
+#log files
+logs/
+*.log

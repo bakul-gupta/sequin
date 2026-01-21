@@ -12,6 +12,8 @@ defmodule Sequin.Repo.Migrations.CreateLocalTunnels do
       add :port, :integer, null: false
     end
 
+    execute "ALTER TABLE #{@config_schema}.available_bastion_ports REPLICA IDENTITY FULL", ""
+
     create unique_index(:available_bastion_ports, [:port], prefix: @config_schema)
 
     # Insert available bastion ports
@@ -30,6 +32,8 @@ defmodule Sequin.Repo.Migrations.CreateLocalTunnels do
 
       timestamps(type: :utc_datetime)
     end
+
+    execute "ALTER TABLE #{@config_schema}.local_tunnels REPLICA IDENTITY FULL", ""
 
     create index(:local_tunnels, [:account_id], prefix: @config_schema)
 

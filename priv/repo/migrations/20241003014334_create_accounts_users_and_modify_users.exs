@@ -17,6 +17,8 @@ defmodule Sequin.Repo.Migrations.CreateAccountsUsersAndModifyUsers do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.accounts_users REPLICA IDENTITY FULL", ""
+
     create unique_index(:accounts_users, [:user_id, :account_id], prefix: @config_schema)
 
     create unique_index(:accounts_users, [:user_id],

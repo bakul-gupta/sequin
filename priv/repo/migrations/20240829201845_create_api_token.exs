@@ -15,6 +15,9 @@ defmodule Sequin.Repo.Migrations.CreateApiToken do
       timestamps(updated_at: false)
     end
 
+    execute "ALTER TABLE #{@config_schema}.api_tokens REPLICA IDENTITY FULL", ""
+
+
     create index(:api_tokens, [:account_id], prefix: @config_schema)
     create unique_index(:api_tokens, [:account_id, :name], prefix: @config_schema)
   end

@@ -20,6 +20,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.accounts REPLICA IDENTITY FULL", ""
+
     create table(:users) do
       add :name, :string
       add :email, :citext, null: false
@@ -32,6 +34,9 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
 
       timestamps(type: :utc_datetime)
     end
+
+    execute "ALTER TABLE #{@config_schema}.users REPLICA IDENTITY FULL", ""
+
 
     # create unique_index(:users, [:email], prefix: @config_schema) #removal 1
 
@@ -59,6 +64,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps(type: :utc_datetime, updated_at: false)
     end
 
+    execute "ALTER TABLE #{@config_schema}.users_tokens REPLICA IDENTITY FULL", ""
+
     create index(:users_tokens, [:user_id])
     create unique_index(:users_tokens, [:context, :token])
 
@@ -82,6 +89,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.postgres_databases REPLICA IDENTITY FULL", ""
+
     # This is for the FKs from postgres_replication to this table
     create unique_index(:postgres_databases, [:id, :account_id], prefix: @config_schema)
 
@@ -103,6 +112,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.postgres_replication_slots REPLICA IDENTITY FULL", ""
+
     create unique_index(:postgres_replication_slots, [:slot_name, :postgres_database_id],
              prefix: @config_schema
            )
@@ -123,6 +134,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
 
       timestamps()
     end
+
+    execute "ALTER TABLE #{@config_schema}.http_endpoints REPLICA IDENTITY FULL", ""
 
     # Required for composite foreign keys pointing to this table
     create unique_index(:http_endpoints, [:id, :account_id], prefix: @config_schema)
@@ -171,6 +184,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.http_push_consumers REPLICA IDENTITY FULL", ""
+
     create unique_index(:http_push_consumers, [:account_id, :name], prefix: @config_schema)
 
     create table(:http_pull_consumers, prefix: @config_schema) do
@@ -205,6 +220,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.http_pull_consumers REPLICA IDENTITY FULL", ""
+
     create unique_index(:http_pull_consumers, [:account_id, :name], prefix: @config_schema)
 
     execute "create type #{@stream_schema}.consumer_record_state as enum ('acked', 'available', 'delivered', 'pending_redelivery');",
@@ -228,6 +245,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
 
       timestamps(type: :utc_datetime_usec)
     end
+
+    execute "ALTER TABLE #{@stream_schema}.consumer_messages REPLICA IDENTITY FULL", ""
 
     create unique_index(:consumer_messages, [:consumer_id, :ack_id], prefix: @stream_schema)
 
@@ -266,6 +285,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
 
       timestamps(type: :utc_datetime_usec)
     end
+
+    execute "ALTER TABLE #{@stream_schema}.consumer_events REPLICA IDENTITY FULL", ""
 
     # create index(:consumer_events, [:consumer_id, :record_pks, :table_oid],
     #          prefix: @stream_schema
@@ -306,6 +327,8 @@ defmodule Sequin.Repo.Migrations.CreateInitial do
 
       timestamps(type: :utc_datetime_usec)
     end
+
+    execute "ALTER TABLE #{@stream_schema}.consumer_records REPLICA IDENTITY FULL", ""
 
     # create unique_index(:consumer_records, [:consumer_id, :record_pks, :table_oid],
     #          prefix: @stream_schema

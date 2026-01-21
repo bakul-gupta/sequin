@@ -37,6 +37,8 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
   def change do
     execute "create table my_version_info as select #{my_version()} as my_version"
 
+    execute "ALTER TABLE my_version_info REPLICA IDENTITY FULL",""
+
     create table(:Characters) do
       add :name, :text
       add :house, :text
@@ -47,6 +49,8 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
 
       timestamps(type: :naive_datetime_usec)
     end
+
+    execute "ALTER TABLE \"Characters\" REPLICA IDENTITY FULL",""
 
     create table(:characters_ident_full) do
       add :name, :text
@@ -70,6 +74,8 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
 
       timestamps(type: :naive_datetime_usec)
     end
+
+    execute "ALTER TABLE characters_multi_pk REPLICA IDENTITY FULL",""
 
     execute "CREATE EXTENSION IF NOT EXISTS pg_trgm"
     execute "CREATE EXTENSION IF NOT EXISTS vector"
@@ -106,6 +112,8 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
       timestamps(type: :naive_datetime_usec)
     end
 
+    execute "ALTER TABLE characters_detailed REPLICA IDENTITY FULL",""
+
     # Older version without transaction_annotations
     create table(:test_event_logs_v0, primary_key: false) do
       add :id, :serial, primary_key: true
@@ -121,6 +129,8 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
       add :committed_at, :naive_datetime_usec, null: false
       add :inserted_at, :naive_datetime_usec, null: false, default: fragment("NOW()")
     end
+
+    execute "ALTER TABLE test_event_logs_v0 REPLICA IDENTITY FULL",""
 
     create unique_index(:test_event_logs_v0, [:source_database_id, :committed_at, :seq, :record_pk])
 
@@ -144,6 +154,8 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
       add :inserted_at, :naive_datetime_usec, null: false, default: fragment("NOW()")
     end
 
+    execute "ALTER TABLE test_event_logs REPLICA IDENTITY FULL",""
+
     create unique_index(:test_event_logs, [:source_database_id, :committed_at, :seq, :record_pk])
     create index(:test_event_logs, [:seq])
     create index(:test_event_logs, [:source_table_oid])
@@ -165,7 +177,11 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
       add :inserted_at, :naive_datetime_usec, null: false, default: fragment("NOW()")
     end
 
+    execute "ALTER TABLE test_event_logs_partitioned REPLICA IDENTITY FULL",""
+
     execute "CREATE TABLE test_event_logs_partitioned_default PARTITION OF test_event_logs_partitioned DEFAULT"
+    execute "ALTER TABLE test_event_logs_partitioned_default REPLICA IDENTITY FULL",""
+
 
     create unique_index(:test_event_logs_partitioned, [:source_database_id, :committed_at, :seq, :record_pk])
     create index(:test_event_logs_partitioned, [:seq])
@@ -194,10 +210,14 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
       add :inserted_at, :naive_datetime_usec, null: false, default: fragment("NOW()")
     end
 
+    execute "ALTER TABLE sequin_events REPLICA IDENTITY FULL",""
+
     create unique_index(:sequin_events, [:source_database_id, :committed_at, :seq, :record_pk])
 
     # Not included in the publication
     create table(:my_non_published_table) do
     end
+
+    execute "ALTER TABLE my_non_published_table REPLICA IDENTITY FULL",""
   end
 end

@@ -48,6 +48,8 @@ defmodule Sequin.Repo.Migrations.DropLocalTunnels do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.allocated_bastion_ports REPLICA IDENTITY FULL", ""
+
     create unique_index(:allocated_bastion_ports, [:port], prefix: @config_schema)
     create unique_index(:allocated_bastion_ports, [:account_id, :name], prefix: @config_schema)
     create index(:allocated_bastion_ports, [:account_id], prefix: @config_schema)
@@ -178,6 +180,8 @@ defmodule Sequin.Repo.Migrations.DropLocalTunnels do
 
       timestamps()
     end
+
+    execute "ALTER TABLE #{@config_schema}.local_tunnels REPLICA IDENTITY FULL", ""
 
     # Add `local_tunnel_id` columns back
     alter table(:http_endpoints, prefix: @config_schema) do

@@ -34,6 +34,8 @@ defmodule Sequin.Repo.Migrations.CreateBackfillsTable do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.backfills REPLICA IDENTITY FULL"
+
     # Create unique constraint for active backfills per sink consumer
     create unique_index(
              :backfills,

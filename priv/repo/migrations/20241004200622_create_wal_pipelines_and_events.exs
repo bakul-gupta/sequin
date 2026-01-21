@@ -35,6 +35,8 @@ defmodule Sequin.Repo.Migrations.CreateWalPipelinesAndEvents do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.wal_pipelines REPLICA IDENTITY FULL"
+
     create index(:wal_pipelines, [:replication_slot_id], prefix: @config_schema)
     create unique_index(:wal_pipelines, [:replication_slot_id, :name], prefix: @config_schema)
 
@@ -55,6 +57,8 @@ defmodule Sequin.Repo.Migrations.CreateWalPipelinesAndEvents do
 
       timestamps()
     end
+
+    execute "ALTER TABLE #{@stream_schema}.wal_events REPLICA IDENTITY FULL"
 
     create index(:wal_events, [:wal_pipeline_id, :commit_lsn], prefix: @stream_schema)
   end

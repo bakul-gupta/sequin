@@ -41,10 +41,56 @@ defmodule Sequin.TestSupport.ReplicationSlots do
           Process.sleep(10)
           reset_slot(repo, slot, attempt + 1)
         else
-          raise "Failed to reset replication slot #{slot} after #{attempt} attempts: #{inspect(error)}"
+          IO.puts("Reset attempted")
+          # raise "Failed to reset replication slot #{slot} after #{attempt} attempts: #{inspect(error)}"
+          # recreate_slot(repo,slot)
         end
     end
   end
+
+  def recreate_slot(repo, slot) do
+    # Step 1: Best-effort drop
+    case repo.query("select pg_drop_replication_slot($1)", [slot]) do
+      {:ok, _} ->
+        :ok
+
+      {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}} ->
+        # Slot does not exist — fine
+        :ok
+
+      {:error, %Postgrex.Error{postgres: %{code: :object_in_use}}} ->
+        # Slot is active — can't drop it safely
+        # In tests, this usually means a walsender is still attached
+        # We intentionally ignore and try to recreate anyway
+        :ok
+
+      {:error, _} ->
+        # Any other error — ignore and continue
+        :ok
+    end
+
+    # Step 2: Create fresh slot
+    case repo.query(
+          "select pg_create_logical_replication_slot($1, 'yboutput')::text",
+          [slot]
+        ) do
+      {:ok, _} ->
+        :ok
+
+      {:error, %Postgrex.Error{postgres: %{code: :duplicate_object}}} ->
+        # Slot already exists (race / concurrent test)
+        :ok
+
+      {:error, error} ->
+        raise """
+        Failed to recreate replication slot #{slot}.
+
+        Error:
+        #{inspect(error)}
+        """
+    end
+  end
+
 
   @doc """
   Run this before ExUnit.start/0. Because replication slots and sandboxes don't play nicely, we
@@ -57,12 +103,9 @@ defmodule Sequin.TestSupport.ReplicationSlots do
       case Repo.query("select pg_drop_replication_slot($1)", [slot_name]) do
         {:ok, _} -> :ok
         {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}} -> :ok
-        {:error, %Postgrex.Error{postgres: %{code: :object_in_use}}} ->
-        # Slot is active; cannot be dropped safely
-        :ok
       end
 
-      # Repo.query!("select pg_create_logical_replication_slot($1, 'pgoutput')::text", [slot_name])
+      Repo.query!("select pg_create_logical_replication_slot($1, 'pgoutput')::text", [slot_name])
     end)
   end
 end

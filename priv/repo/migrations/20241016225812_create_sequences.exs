@@ -18,6 +18,8 @@ defmodule Sequin.Repo.Migrations.CreateSequences do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.sequences REPLICA IDENTITY FULL",""
+
     create unique_index(:sequences, [:postgres_database_id, :table_oid])
 
     alter table(:http_push_consumers, prefix: @config_schema) do

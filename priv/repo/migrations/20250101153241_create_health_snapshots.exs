@@ -19,6 +19,8 @@ defmodule Sequin.Repo.Migrations.CreateHealthSnapshots do
       timestamps()
     end
 
+    execute "ALTER TABLE #{@config_schema}.health_snapshots REPLICA IDENTITY FULL",""
+
     create index(:health_snapshots, [:entity_id, :sampled_at], prefix: @config_schema)
     create unique_index(:health_snapshots, [:entity_kind, :entity_id], prefix: @config_schema)
     create index(:health_snapshots, [:sampled_at], prefix: @config_schema)
