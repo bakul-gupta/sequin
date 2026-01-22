@@ -193,6 +193,8 @@ defmodule Sequin.Test.UnboxedRepo.Migrations.CreateTestTables do
     execute Sequin.Postgres.logical_messages_table_ddl(),
             "drop table if exists #{Constants.logical_messages_table_name()}"
 
+    execute "ALTER TABLE sequin_logical_messages REPLICA IDENTITY FULL",""
+
     execute "create publication characters_publication for table \"Characters\", characters_ident_full, characters_multi_pk, characters_detailed, test_event_logs_partitioned, #{Constants.logical_messages_table_name()}",
             "drop publication characters_publication"
 
