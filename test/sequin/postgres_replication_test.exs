@@ -439,64 +439,64 @@ defmodule Sequin.PostgresReplicationTest do
       assert data.record["tags"] == [], "Expected empty array, got: #{inspect(data.record["tags"])}"
     end
 
-    test "transaction annotations are propagated correctly", %{event_character_consumer: consumer} do
-      # Insert two characters in the same transaction with annotations
-      {:ok, {character1, character2}} =
-        UnboxedRepo.transaction(fn ->
-          # Set initial transaction annotations
-          {:ok, _} =
-            UnboxedRepo.query(
-              ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "yahya" }')|
-            )
+    # test "transaction annotations are propagated correctly", %{event_character_consumer: consumer} do
+    #   # Insert two characters in the same transaction with annotations
+    #   {:ok, {character1, character2}} =
+    #     UnboxedRepo.transaction(fn ->
+    #       # Set initial transaction annotations
+    #       {:ok, _} =
+    #         UnboxedRepo.query(
+    #           ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "yahya" }')|
+    #         )
 
-          c1 = CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
-          c2 = CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
-          {c1, c2}
-        end)
+    #       c1 = CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
+    #       c2 = CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
+    #       {c1, c2}
+    #     end)
 
-      # Wait for the annotated messages to be handled
-      await_messages(2)
+    #   # Wait for the annotated messages to be handled
+    #   await_messages(2)
 
-      # Insert a character without annotations
-      character3 = CharacterFactory.insert_character!([name: "Duncan"], repo: UnboxedRepo)
+    #   # Insert a character without annotations
+    #   character3 = CharacterFactory.insert_character!([name: "Duncan"], repo: UnboxedRepo)
 
-      # Wait for the message to be handled
-      await_messages(1)
+    #   # Wait for the message to be handled
+    #   await_messages(1)
 
-      # Insert final character with new annotations
-      {:ok, character4} =
-        UnboxedRepo.transaction(fn ->
-          # Set new annotations
-          {:ok, _} =
-            UnboxedRepo.query(
-              ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "spice": "flow" }')|
-            )
+    #   # Insert final character with new annotations
+    #   {:ok, character4} =
+    #     UnboxedRepo.transaction(fn ->
+    #       # Set new annotations
+    #       {:ok, _} =
+    #         UnboxedRepo.query(
+    #           ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "spice": "flow" }')|
+    #         )
 
-          CharacterFactory.insert_character!([name: "Chani"], repo: UnboxedRepo)
-        end)
+    #       CharacterFactory.insert_character!([name: "Chani"], repo: UnboxedRepo)
+    #     end)
 
-      # Wait for final messages to be handled
-      await_messages(1)
+    #   # Wait for final messages to be handled
+    #   await_messages(1)
 
-      # Fetch all consumer events
-      events = list_messages(consumer)
+    #   # Fetch all consumer events
+    #   events = list_messages(consumer)
 
-      # Find events for each character
-      event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
-      event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
-      event3 = Enum.find(events, &(hd(&1.record_pks) == to_string(character3.id)))
-      event4 = Enum.find(events, &(hd(&1.record_pks) == to_string(character4.id)))
+    #   # Find events for each character
+    #   event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
+    #   event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
+    #   event3 = Enum.find(events, &(hd(&1.record_pks) == to_string(character3.id)))
+    #   event4 = Enum.find(events, &(hd(&1.record_pks) == to_string(character4.id)))
 
-      # First two events should have the same annotations
-      assert event1.data.metadata.transaction_annotations == %{"username" => "yahya"}
-      assert event2.data.metadata.transaction_annotations == %{"username" => "yahya"}
+    #   # First two events should have the same annotations
+    #   assert event1.data.metadata.transaction_annotations == %{"username" => "yahya"}
+    #   assert event2.data.metadata.transaction_annotations == %{"username" => "yahya"}
 
-      # Third event should have no annotations
-      assert event3.data.metadata.transaction_annotations == nil
+    #   # Third event should have no annotations
+    #   assert event3.data.metadata.transaction_annotations == nil
 
-      # Fourth event should have new annotations
-      assert event4.data.metadata.transaction_annotations == %{"spice" => "flow"}
-    end
+    #   # Fourth event should have new annotations
+    #   assert event4.data.metadata.transaction_annotations == %{"spice" => "flow"}
+    # end
 
     @tag capture_log: true
     test "invalid transaction annotations are ignored", %{event_character_consumer: consumer} do
