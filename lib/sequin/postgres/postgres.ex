@@ -635,6 +635,9 @@ defmodule Sequin.Postgres do
       {:ok, %{rows: [["i"]]}} ->
         {:ok, :index}
 
+      {:ok, %{rows: [["c"]]}} ->
+        {:ok, :change}
+
       {:ok, %{rows: []}} ->
         {:error, Error.not_found(entity: :table, params: %{oid: oid})}
 
@@ -660,7 +663,7 @@ defmodule Sequin.Postgres do
     - root_oid: The OID of the partitioned (root) table
   """
   @spec check_partitioned_replica_identity(db_conn(), integer()) ::
-          {:ok, :full | :default | :nothing | :index | :mixed} | {:error, Error.t()}
+          {:ok, :full | :default | :nothing | :index | :mixed | :change} | {:error, Error.t()}
   def check_partitioned_replica_identity(conn, root_oid) do
     query = """
     with partitions as (
@@ -698,6 +701,7 @@ defmodule Sequin.Postgres do
               "d" -> :default
               "n" -> :nothing
               "i" -> :index
+              "c" -> :change
             end
 
           {:ok, identity}
