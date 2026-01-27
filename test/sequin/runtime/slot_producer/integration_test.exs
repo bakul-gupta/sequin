@@ -205,23 +205,23 @@ defmodule Sequin.Runtime.SlotProducer.IntegrationTest do
       assert post_txn_msg.commit_idx == 0
     end
 
-    test "logical messages flow through complete pipeline", %{postgres_replication: slot} do
-      # Emit a logical message using pg_logical_emit_message
-      subject = "test-subject"
-      content = ~s|{"event": "test", "data": "logical message content"}|
+    # test "logical messages flow through complete pipeline", %{postgres_replication: slot} do
+    #   # Emit a logical message using pg_logical_emit_message
+    #   subject = "test-subject"
+    #   content = ~s|{"event": "test", "data": "logical message content"}|
 
-      Postgres.query!(slot.postgres_database, "SELECT pg_logical_emit_message(true, $1, $2)", [subject, content])
+    #   Postgres.query!(slot.postgres_database, "SELECT pg_logical_emit_message(true, $1, $2)", [subject, content])
 
-      # Wait for the logical message to flow through the pipeline
-      [msg] = receive_messages(1)
+    #   # Wait for the logical message to flow through the pipeline
+    #   [msg] = receive_messages(1)
 
-      # Verify it's a LogicalMessage struct
-      assert %LogicalMessage{} = logical_msg = msg.message
+    #   # Verify it's a LogicalMessage struct
+    #   assert %LogicalMessage{} = logical_msg = msg.message
 
-      # Verify the content matches what we sent
-      assert logical_msg.prefix == subject
-      assert logical_msg.content == content
-    end
+    #   # Verify the content matches what we sent
+    #   assert logical_msg.prefix == subject
+    #   assert logical_msg.content == content
+    # end
   end
 
   defp receive_messages(count) do

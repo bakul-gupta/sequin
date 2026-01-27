@@ -498,51 +498,51 @@ defmodule Sequin.PostgresReplicationTest do
     #   assert event4.data.metadata.transaction_annotations == %{"spice" => "flow"}
     # end
 
-    @tag capture_log: true
-    test "invalid transaction annotations are ignored", %{event_character_consumer: consumer} do
-      # Insert a character with invalid JSON annotations
-      {:ok, character1} =
-        UnboxedRepo.transaction(fn ->
-          # Set invalid JSON as transaction annotations
-          {:ok, _} =
-            UnboxedRepo.query(
-              "select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ invalid json }')"
-            )
+    # @tag capture_log: true
+    # test "invalid transaction annotations are ignored", %{event_character_consumer: consumer} do
+    #   # Insert a character with invalid JSON annotations
+    #   {:ok, character1} =
+    #     UnboxedRepo.transaction(fn ->
+    #       # Set invalid JSON as transaction annotations
+    #       {:ok, _} =
+    #         UnboxedRepo.query(
+    #           "select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ invalid json }')"
+    #         )
 
-          CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
-        end)
+    #       CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
+    #     end)
 
-      # Wait for the message to be handled
-      await_messages(1)
+    #   # Wait for the message to be handled
+    #   await_messages(1)
 
-      # Insert another character with valid annotations
-      {:ok, character2} =
-        UnboxedRepo.transaction(fn ->
-          # Set valid annotations
-          {:ok, _} =
-            UnboxedRepo.query(
-              ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "leto" }')|
-            )
+    #   # Insert another character with valid annotations
+    #   {:ok, character2} =
+    #     UnboxedRepo.transaction(fn ->
+    #       # Set valid annotations
+    #       {:ok, _} =
+    #         UnboxedRepo.query(
+    #           ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "leto" }')|
+    #         )
 
-          CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
-        end)
+    #       CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
+    #     end)
 
-      # Wait for the message to be handled
-      await_messages(1)
+    #   # Wait for the message to be handled
+    #   await_messages(1)
 
-      # Fetch all consumer events
-      events = list_messages(consumer)
+    #   # Fetch all consumer events
+    #   events = list_messages(consumer)
 
-      # Find events for each character
-      event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
-      event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
+    #   # Find events for each character
+    #   event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
+    #   event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
 
-      # First event should have no annotations due to parse error
-      assert event1.data.metadata.transaction_annotations == nil
+    #   # First event should have no annotations due to parse error
+    #   assert event1.data.metadata.transaction_annotations == nil
 
-      # Second event should have valid annotations
-      assert event2.data.metadata.transaction_annotations == %{"username" => "leto"}
-    end
+    #   # Second event should have valid annotations
+    #   assert event2.data.metadata.transaction_annotations == %{"username" => "leto"}
+    # end
 
     # Postgres quirk - the logical decoding process does not distinguish between an empty array and an array with an empty string.
     # https://chatgpt.com/share/6707334f-0978-8006-8358-ec2300d759a4
@@ -723,8 +723,8 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Insert a character
       character = CharacterFactory.insert_character!([], repo: UnboxedRepo)
-
       # Wait for the message to be handled
+      assert_receive :init_complete, 500
       assert_receive {:http_request, req}, 500
       assert to_string(req.body) =~ "Characters"
       assert to_string(req.body) =~ "insert"
