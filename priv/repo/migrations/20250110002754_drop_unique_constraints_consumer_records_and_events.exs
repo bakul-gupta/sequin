@@ -1,7 +1,7 @@
 defmodule Sequin.Repo.Migrations.DropUniqueConstraintsConsumerRecordsAndEvents do
   use Ecto.Migration
 
-  @stream_schema Application.compile_env(:sequin, [Sequin.Repo, :stream_schema_prefix])
+  # @stream_schema Application.compile_env(:sequin, [Sequin.Repo, :stream_schema_prefix])
 
   def change do
     # drop(

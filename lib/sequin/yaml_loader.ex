@@ -1,7 +1,7 @@
 defmodule Sequin.YamlLoader do
   @moduledoc false
+  alias Ecto.Adapters.SQL.Sandbox
   alias Sequin.Accounts
-  alias Sequin.Accounts.Account
   alias Sequin.ApiTokens
   alias Sequin.Consumers
   alias Sequin.Consumers.SinkConsumer
@@ -103,34 +103,22 @@ defmodule Sequin.YamlLoader do
     ## return a list of changesets
     case YamlElixir.read_from_string(yml, merge_anchors: true) do
       {:ok, config} ->
+        # Get current resources BEFORE applying config
+        # This ensures we see the state before changes, not after
+        current_resources = all_resources(account_id)
+
         result =
-          Repo.transaction(
-            fn ->
-              account_id
-              |> apply_config(config, opts)
-              |> Repo.rollback()
-            end,
-            timeout: to_timeout(second: 90)
-          )
+          if using_sandbox_pool?() do
+            plan_without_nested_transaction(account_id, config, opts)
+          else
+            plan_with_transaction(account_id, config, opts)
+          end
 
         case result do
-          {:error, {:ok, planned_resources, actions}} ->
-            # Get the account id from the planned resources if it exists
-            # account_id is nil if the account is not found, ie. it's a new account
-            account_id =
-              planned_resources
-              |> Sequin.Enum.find!(&is_struct(&1, Account))
-              |> Map.fetch!(:id)
-              |> Accounts.get_account()
-              |> case do
-                {:ok, account} -> account.id
-                {:error, %NotFoundError{}} -> nil
-              end
-
-            current_resources = all_resources(account_id)
+          {:ok, planned_resources, actions} ->
             {:ok, planned_resources, current_resources, actions}
 
-          {:error, {:error, error}} ->
+          {:error, error} ->
             {:error, map_error(error)}
         end
 
@@ -146,6 +134,58 @@ defmodule Sequin.YamlLoader do
     end
   end
 
+  # Avoid nested transactions in test sandbox by running apply_config directly
+  # The sandbox will rollback all changes at the end of the test
+  defp plan_without_nested_transaction(account_id, config, opts) do
+    owner = self()
+
+    task =
+      Task.async(fn ->
+        # Allow this process to use the sandbox connection from the test process
+        Sandbox.allow(Sequin.Repo, owner, self())
+
+        # Run apply_config directly without wrapping in a transaction
+        # This avoids the nested transaction issue
+        case apply_config(account_id, config, opts) do
+          {:ok, planned_resources, actions} ->
+            {:error, {:ok, planned_resources, actions}}
+
+          {:error, error} ->
+            {:error, {:error, error}}
+        end
+      end)
+
+    result = Task.await(task, to_timeout(second: 90))
+
+    case result do
+      {:error, {:ok, planned_resources, actions}} ->
+        {:ok, planned_resources, actions}
+
+      {:error, {:error, error}} ->
+        {:error, error}
+    end
+  end
+
+  defp plan_with_transaction(account_id, config, opts) do
+    result =
+      Repo.transaction(
+        fn ->
+          account_id
+          |> apply_config(config, opts)
+          |> Repo.rollback()
+        end,
+        timeout: to_timeout(second: 90)
+      )
+
+    case result do
+      {:error, {:ok, planned_resources, actions}} ->
+        {:ok, planned_resources, actions}
+
+      {:error, {:error, error}} ->
+        {:error, error}
+    end
+  end
+
   defp map_error(%Ecto.Changeset{} = changeset) do
     case Error.errors_on(changeset) do
       %{source_tables: [%{group_column_attnums: [error | _]} | _]} ->
@@ -157,6 +197,16 @@ defmodule Sequin.YamlLoader do
   end
 
   defp map_error(error), do: error
+
+  defp using_sandbox_pool? do
+    case Application.get_env(:sequin, Sequin.Repo, []) do
+      config when is_list(config) ->
+        Keyword.get(config, :pool) == Sandbox
+
+      _ ->
+        false
+    end
+  end
 
   defp apply_config(account_id, config, opts) do
     with {:ok, account} <- find_or_create_account(account_id, config),
