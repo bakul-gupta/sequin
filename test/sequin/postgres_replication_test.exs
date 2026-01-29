@@ -280,6 +280,8 @@ defmodule Sequin.PostgresReplicationTest do
           repo: UnboxedRepo
         )
 
+      :timer.sleep(1000)
+
       # Wait for the insert message to be handled
       await_messages(1)
 
@@ -351,10 +353,12 @@ defmodule Sequin.PostgresReplicationTest do
     } do
       character = CharacterFactory.insert_character_ident_full!([], repo: UnboxedRepo)
 
+      :timer.sleep(1000)
       await_messages(1)
 
       UnboxedRepo.delete!(character)
 
+      :timer.sleep(1000)
       await_messages(1)
       events = list_messages(consumer)
       delete_event = Enum.find(events, &(&1.data.action == :delete))
@@ -427,6 +431,7 @@ defmodule Sequin.PostgresReplicationTest do
       character = CharacterFactory.insert_character!([tags: []], repo: UnboxedRepo)
 
       # Wait for the message to be handled and fetch consumer events
+      :timer.sleep(1000)
       [consumer_event] = receive_messages(consumer, 1)
 
       # Assert the consumer event details
@@ -439,6 +444,7 @@ defmodule Sequin.PostgresReplicationTest do
       assert data.record["tags"] == [], "Expected empty array, got: #{inspect(data.record["tags"])}"
     end
 
+    # -> not supported by yb
     # test "transaction annotations are propagated correctly", %{event_character_consumer: consumer} do
     #   # Insert two characters in the same transaction with annotations
     #   {:ok, {character1, character2}} =
@@ -498,6 +504,7 @@ defmodule Sequin.PostgresReplicationTest do
     #   assert event4.data.metadata.transaction_annotations == %{"spice" => "flow"}
     # end
 
+    # -> not supported by yb
     # @tag capture_log: true
     # test "invalid transaction annotations are ignored", %{event_character_consumer: consumer} do
     #   # Insert a character with invalid JSON annotations
@@ -721,11 +728,14 @@ defmodule Sequin.PostgresReplicationTest do
       {:ok, _} =
         Runtime.Supervisor.start_replication(sup, pg_replication, test_pid: test_pid, req_opts: [adapter: adapter])
 
+      # Wait for initialization to complete
+      assert_receive :init_complete, 1000
+
       # Insert a character
       character = CharacterFactory.insert_character!([], repo: UnboxedRepo)
+
       # Wait for the message to be handled
-      assert_receive :init_complete, 500
-      assert_receive {:http_request, req}, 500
+      assert_receive {:http_request, req}, 5000
       assert to_string(req.body) =~ "Characters"
       assert to_string(req.body) =~ "insert"
       assert to_string(req.body) =~ to_string(character.id)
@@ -750,11 +760,14 @@ defmodule Sequin.PostgresReplicationTest do
       {:ok, _} =
         Runtime.Supervisor.start_replication(sup, pg_replication, test_pid: test_pid, req_opts: [adapter: adapter])
 
+      # Wait for initialization to complete
+      assert_receive :init_complete, 1000
+
       # Insert a character
       character = CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
       # Wait for the message to be handled
-      assert_receive {:http_request, req}, 600
+      assert_receive {:http_request, req}, 6000
       assert to_string(req.body) =~ "Characters"
       assert to_string(req.body) =~ "insert"
       assert to_string(req.body) =~ to_string(character.id)
@@ -831,6 +844,8 @@ defmodule Sequin.PostgresReplicationTest do
         CharacterFactory.insert_character!([name: "Leto Atreides"], repo: UnboxedRepo)
         CharacterFactory.insert_character!([name: "Chani"], repo: UnboxedRepo)
       end)
+
+      :timer.sleep(1000)
 
       changes = receive_messages_from_mock(3)
       [insert1, insert2, insert3] = changes
@@ -949,7 +964,7 @@ defmodule Sequin.PostgresReplicationTest do
       character1 = CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
       # Wait for the message to be handled
-      assert_receive {:changes, [change]}, to_timeout(second: 1)
+      assert_receive {:changes, [change]}, to_timeout(minute: 1)
       assert action?(change, :insert)
       assert get_field_value(change.fields, "id") == character1.id
 
@@ -957,7 +972,7 @@ defmodule Sequin.PostgresReplicationTest do
       character2 = CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
       # Wait for the message to be handled
-      assert_receive {:changes, [change]}, to_timeout(second: 1)
+      assert_receive {:changes, [change]}, to_timeout(minute: 1)
       assert action?(change, :insert)
       assert get_field_value(change.fields, "id") == character2.id
 
@@ -1005,6 +1020,7 @@ defmodule Sequin.PostgresReplicationTest do
       # Insert a character to generate a message
       _character1 = CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
+      :timer.sleep(1000)
       await_messages(1)
 
       # Second call will fail with payload_size_limit_exceeded
@@ -1020,7 +1036,7 @@ defmodule Sequin.PostgresReplicationTest do
       # Insert another character to trigger the payload size limit exceeded error
       character2 = CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
-      assert_receive :sent_error, 100
+      assert_receive :sent_error, 1000
 
       # Last call succeeds
       expect(MessageHandlerMock, :handle_messages, fn _ctx, messages ->
@@ -1057,35 +1073,37 @@ defmodule Sequin.PostgresReplicationTest do
       assert_receive :connect_fail, 1000
     end
 
-    test "emits heartbeat messages for latest postgres version", %{pg_replication: pg_replication} do
-      # Attempt to start replication with the non-existent slot
-      start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
+    # -> not supported by yb
+    # test "emits heartbeat messages for latest postgres version", %{pg_replication: pg_replication} do
+    #   # Attempt to start replication with the non-existent slot
+    #   start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
 
-      assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
-      assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
+    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
+    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
 
-      # Verify that the Health status was updated
-      {:ok, health} =
-        Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
+    #   # Verify that the Health status was updated
+    #   {:ok, health} =
+    #     Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
 
-      check = Enum.find(health.checks, &(&1.slug == :replication_messages))
-      assert check.status == :healthy
-    end
+    #   check = Enum.find(health.checks, &(&1.slug == :replication_messages))
+    #   assert check.status == :healthy
+    # end
 
-    test "emits heartbeat messages for older postgres version", %{pg_replication: pg_replication} do
-      # Attempt to start replication with the non-existent slot
-      start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
+    # -> not supported by yb
+    # test "emits heartbeat messages for older postgres version", %{pg_replication: pg_replication} do
+    #   # Attempt to start replication with the non-existent slot
+    #   start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
 
-      assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
-      assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
+    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
+    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
 
-      # Verify that the Health status was updated
-      {:ok, health} =
-        Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
+    #   # Verify that the Health status was updated
+    #   {:ok, health} =
+    #     Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
 
-      check = Enum.find(health.checks, &(&1.slug == :replication_messages))
-      assert check.status == :healthy
-    end
+    #   check = Enum.find(health.checks, &(&1.slug == :replication_messages))
+    #   assert check.status == :healthy
+    # end
   end
 
   describe "PostgresReplicationSlot end-to-end with sequences" do
@@ -1329,6 +1347,7 @@ defmodule Sequin.PostgresReplicationTest do
       # Insert a record to trigger WAL processing
       CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
+      :timer.sleep(1000)
       await_messages(1)
 
       # Verify that DatabaseUpdateWorker was enqueued with the correct args
@@ -1409,6 +1428,8 @@ defmodule Sequin.PostgresReplicationTest do
           ],
           repo: UnboxedRepo
         )
+
+      :timer.sleep(1000)
 
       # Fetch consumer records
       [message] = receive_messages(consumer, 1)

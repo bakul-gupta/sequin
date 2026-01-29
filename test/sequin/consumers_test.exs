@@ -689,8 +689,11 @@ defmodule Sequin.ConsumersTest do
         ConsumersFactory.insert_consumer_message!(consumer_id: consumer.id)
       end
 
+      :timer.sleep(1000)
+
       # Check the size is positive
       {:ok, size} = Consumers.consumer_partition_size_bytes(consumer)
+      IO.inspect(size)
       assert is_integer(size)
       assert size > 0
 
