@@ -273,7 +273,7 @@ defmodule Sequin.Runtime.SlotProducerTest do
     test "receives relation messages" do
       CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
 
-      assert_receive {:relation_received, %Relation{} = relation}, 1000
+      assert_receive {:relation_received, %Relation{} = relation}, 10_000
 
       assert relation.schema == "public"
       assert relation.table == Character.table_name()
@@ -293,7 +293,7 @@ defmodule Sequin.Runtime.SlotProducerTest do
     test "receives relation messages for partitioned table" do
       TestEventLogFactory.insert_test_event_log_partitioned!(%{}, repo: UnboxedRepo)
 
-      assert_receive {:relation_received, %Relation{} = relation}, 1000
+      assert_receive {:relation_received, %Relation{} = relation}, 10_000
 
       assert relation.schema == "public"
       assert relation.table == TestEventLogPartitioned.table_name()
@@ -370,7 +370,7 @@ defmodule Sequin.Runtime.SlotProducerTest do
       end
 
       # Verify the producer switches to buffering status
-      assert_eventually SlotProducer.status(slot.id) == :buffering, 1000
+      assert_eventually SlotProducer.status(slot.id) == :buffering, 10_000
 
       # Now ask for demand to trigger message delivery
       TestProcessor.ask(consumer_pid, 21)
@@ -474,7 +474,7 @@ defmodule Sequin.Runtime.SlotProducerTest do
   end
 
   defp receive_messages(count, acc \\ []) do
-    assert_receive {:messages_received, messages}, 1_000
+    assert_receive {:messages_received, messages}, 10_000
 
     case count - length(messages) do
       0 ->

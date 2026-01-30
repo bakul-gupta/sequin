@@ -41,9 +41,11 @@ defmodule Sequin.TestSupport.ReplicationSlots do
           Process.sleep(10)
           reset_slot(repo, slot, attempt + 1)
         else
-          IO.puts("Reset attempted")
+          # IO.puts("Reset attempted")
           # raise "Failed to reset replication slot #{slot} after #{attempt} attempts: #{inspect(error)}"
-          # recreate_slot(repo,slot)
+          IO.puts("Recreating slot")
+          recreate_slot(repo, slot)
+          Process.sleep(1000)
         end
     end
   end
@@ -71,9 +73,9 @@ defmodule Sequin.TestSupport.ReplicationSlots do
 
     # Step 2: Create fresh slot
     case repo.query(
-          "select pg_create_logical_replication_slot($1, 'yboutput')::text",
-          [slot]
-        ) do
+           "select pg_create_logical_replication_slot($1, 'pgoutput')::text",
+           [slot]
+         ) do
       {:ok, _} ->
         :ok
 
@@ -90,7 +92,6 @@ defmodule Sequin.TestSupport.ReplicationSlots do
         """
     end
   end
-
 
   @doc """
   Run this before ExUnit.start/0. Because replication slots and sandboxes don't play nicely, we

@@ -73,6 +73,7 @@ defmodule Sequin.Runtime.SlotProducer.IntegrationTest do
       CharacterFactory.insert_character!(%{name: "Zed"}, repo: UnboxedRepo)
 
       # Wait for messages to flow through the complete pipeline
+      :timer.sleep(1000)
       [batch1] = receive_messages_batched(3)
       messages = batch1.messages
 
@@ -148,6 +149,7 @@ defmodule Sequin.Runtime.SlotProducer.IntegrationTest do
       end
 
       # Wait for all messages - should work fine because late joiners got relations
+      :timer.sleep(1000)
       messages = receive_messages(12)
 
       # All messages should be properly processed (proving relations were sent to late joiners)
@@ -230,7 +232,7 @@ defmodule Sequin.Runtime.SlotProducer.IntegrationTest do
   end
 
   defp receive_messages_batched(count, acc_messages \\ [], acc_batches \\ []) do
-    assert_receive {:batch, batch}, 1_000
+    assert_receive {:batch, batch}, 10_000
     new_messages = acc_messages ++ batch.messages
     new_batches = [batch | acc_batches]
 

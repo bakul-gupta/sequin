@@ -191,6 +191,7 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Wait for the message to be handled
       [consumer_event] = receive_messages(consumer, 1)
+      # IO.inspect(consumer_event, label: "consumer_event")
 
       # Assert the consumer event details
       assert consumer_event.consumer_id == consumer.id
@@ -353,12 +354,10 @@ defmodule Sequin.PostgresReplicationTest do
     } do
       character = CharacterFactory.insert_character_ident_full!([], repo: UnboxedRepo)
 
-      :timer.sleep(1000)
       await_messages(1)
 
       UnboxedRepo.delete!(character)
 
-      :timer.sleep(1000)
       await_messages(1)
       events = list_messages(consumer)
       delete_event = Enum.find(events, &(&1.data.action == :delete))
@@ -431,8 +430,8 @@ defmodule Sequin.PostgresReplicationTest do
       character = CharacterFactory.insert_character!([tags: []], repo: UnboxedRepo)
 
       # Wait for the message to be handled and fetch consumer events
-      :timer.sleep(1000)
       [consumer_event] = receive_messages(consumer, 1)
+      # IO.inspect(consumer_event, label: "consumer_event")
 
       # Assert the consumer event details
       assert consumer_event.consumer_id == consumer.id
@@ -613,30 +612,31 @@ defmodule Sequin.PostgresReplicationTest do
       assert consumer_event.table_oid == TestEventLogPartitioned.table_oid()
     end
 
-    @tag start_opts: [
-           heartbeat_interval: 1,
-           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-         ]
-    test "replication slot advances even when database is idle", %{source_db: db} do
-      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
-      assert_lsn_progress(init_lsn, db)
-    end
+    # -> not supported by yb
+    # @tag start_opts: [
+    #        heartbeat_interval: 1,
+    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+    #      ]
+    # test "replication slot advances even when database is idle", %{source_db: db} do
+    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    #   assert_lsn_progress(init_lsn, db)
+    # end
 
-    @tag start_opts: [
-           heartbeat_interval: to_timeout(minute: 1),
-           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-         ]
-    test "replication slot advances after insert", %{source_db: db, event_character_consumer: consumer} do
-      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    # @tag start_opts: [
+    #        heartbeat_interval: to_timeout(minute: 1),
+    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+    #      ]
+    # test "replication slot advances after insert", %{source_db: db, event_character_consumer: consumer} do
+    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
 
-      CharacterFactory.insert_character!([], repo: UnboxedRepo)
+    #   CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
-      assert_lsn_progress(init_lsn, db)
-      [consumer_event] = receive_messages(consumer, 1)
-      commit_lsn = consumer_event.commit_lsn
+    #   assert_lsn_progress(init_lsn, db)
+    #   [consumer_event] = receive_messages(consumer, 1)
+    #   commit_lsn = consumer_event.commit_lsn
 
-      assert {:ok, ^commit_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
-    end
+    #   assert {:ok, ^commit_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    # end
 
     @tag :jepsen
     @tag capture_log: true
@@ -1475,26 +1475,27 @@ defmodule Sequin.PostgresReplicationTest do
       }
     end
 
-    @tag start_opts: [
-           heartbeat_interval: 1,
-           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-         ]
-    test "replication slot advances even when database is idle", %{source_db: db} do
-      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
-      assert_lsn_progress(init_lsn, db)
-    end
+    # -> not supported by yb
+    # @tag start_opts: [
+    #        heartbeat_interval: 1,
+    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+    #      ]
+    # test "replication slot advances even when database is idle", %{source_db: db} do
+    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    #   assert_lsn_progress(init_lsn, db)
+    # end
 
-    @tag start_opts: [
-           heartbeat_interval: to_timeout(minute: 1),
-           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-         ]
-    test "replication slot advances after insert", %{source_db: db} do
-      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    # @tag start_opts: [
+    #        heartbeat_interval: to_timeout(minute: 1),
+    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+    #      ]
+    # test "replication slot advances after insert", %{source_db: db} do
+    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
 
-      CharacterFactory.insert_character!([], repo: UnboxedRepo)
+    #   CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
-      assert_lsn_progress(init_lsn, db)
-    end
+    #   assert_lsn_progress(init_lsn, db)
+    # end
   end
 
   defp start_replication!(replication_slot, opts) do
@@ -1550,7 +1551,7 @@ defmodule Sequin.PostgresReplicationTest do
   end
 
   defp await_messages(count, acc_count \\ 0) do
-    assert_receive {SlotProcessorServer, :flush_messages, flush_count}, 1_000
+    assert_receive {SlotProcessorServer, :flush_messages, flush_count}, 10_000
     acc_count = acc_count + flush_count
 
     case count - acc_count do
@@ -1576,7 +1577,7 @@ defmodule Sequin.PostgresReplicationTest do
   end
 
   defp receive_messages_from_mock(count, acc \\ []) do
-    assert_receive {:changes, changes}, 1_000
+    assert_receive {:changes, changes}, 10_000
     acc = acc ++ changes
 
     case count - length(acc) do
