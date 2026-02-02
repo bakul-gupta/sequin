@@ -1089,21 +1089,20 @@ defmodule Sequin.PostgresReplicationTest do
     #   assert check.status == :healthy
     # end
 
-    # -> not supported by yb
-    # test "emits heartbeat messages for older postgres version", %{pg_replication: pg_replication} do
-    #   # Attempt to start replication with the non-existent slot
-    #   start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
+    test "emits heartbeat messages for older postgres version", %{pg_replication: pg_replication} do
+      # Attempt to start replication with the non-existent slot
+      start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
 
-    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
-    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
+      assert_receive {SlotProcessorServer, :heartbeat_received}, 10_000
+      assert_receive {SlotProcessorServer, :heartbeat_received}, 10_000
 
-    #   # Verify that the Health status was updated
-    #   {:ok, health} =
-    #     Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
+      # Verify that the Health status was updated
+      {:ok, health} =
+        Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
 
-    #   check = Enum.find(health.checks, &(&1.slug == :replication_messages))
-    #   assert check.status == :healthy
-    # end
+      check = Enum.find(health.checks, &(&1.slug == :replication_messages))
+      assert check.status == :healthy
+    end
   end
 
   describe "PostgresReplicationSlot end-to-end with sequences" do
