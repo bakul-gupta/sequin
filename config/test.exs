@@ -41,7 +41,7 @@ config :sequin, Sequin.Repo,
   username: "yugabyte",
   password: "yugabyte",
   hostname: "localhost",
-  database: "yugabyte",
+  database: "sequin_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 20,
   port: 5433,
@@ -49,7 +49,8 @@ config :sequin, Sequin.Repo,
   queue_interval: 1000,
   ssl: false,
   types: PostgrexTypes
-  # migration_lock: :pg_advisory_lock
+
+# migration_lock: :pg_advisory_lock
 
 config :sequin, Sequin.Runtime.SlotProducer, batch_flush_interval: 10
 
@@ -77,7 +78,7 @@ config :sequin, UnboxedRepo,
   username: "yugabyte",
   password: "yugabyte",
   hostname: "localhost",
-  database: "yugabyte",
+  database: "sequin_test",
   pool_size: 20,
   port: 5433,
   queue_target: 100,

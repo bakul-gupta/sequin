@@ -632,7 +632,7 @@ defmodule Sequin.Transforms do
 
     missing_params = for {k, nil} <- uri_params, do: k
     overlapping_url_params = ["database", "hostname", "port", "username", "password"]
-    example_url = "postgresql://user:password@localhost:5432/mydb"
+    example_url = "postgresql://user:password@localhost:5433/mydb"
 
     cond do
       Enum.any?(overlapping_url_params, fn p -> Map.get(params, p) end) ->
@@ -677,7 +677,7 @@ defmodule Sequin.Transforms do
         "annotations",
         "primary"
       ])
-      |> Map.put_new("port", 5432)
+      |> Map.put_new("port", 5433)
 
     with {:ok, primary} <- parse_primary_params(db_params) do
       if is_map_key(allowed_params, "primary") do

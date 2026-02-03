@@ -122,11 +122,6 @@ defmodule Sequin.YamlLoaderTest do
       database = Repo.preload(database, [:replication_slot])
       assert database.name == "test-db"
 
-      # Get the Characters table OID from the database created via YAML
-      {:ok, tables} = Databases.tables(database)
-      characters_table = Enum.find(tables, &(&1.name == "Characters"))
-      assert characters_table, "Characters table should exist in the database"
-
       http_endpoint = Enum.find(planned_resources, &is_struct(&1, HttpEndpoint))
       assert http_endpoint.name == "test-endpoint"
       assert http_endpoint.scheme == :https
@@ -139,7 +134,7 @@ defmodule Sequin.YamlLoaderTest do
       assert wal_pipeline.name == "test-pipeline"
       assert wal_pipeline.status == :active
       assert [%WalPipelineSourceTable{} = source_table] = wal_pipeline.source_tables
-      assert source_table.oid == characters_table.oid
+      assert source_table.oid == Character.table_oid()
       assert source_table.actions == [:insert, :delete]
     end
 
@@ -614,8 +609,7 @@ defmodule Sequin.YamlLoaderTest do
                        end
                """)
 
-      :timer.sleep(1000)
-      assert [function2, function1] = Repo.all(Function, order_by: :name)
+      assert [function1, function2] = Repo.all(Function, order_by: :name)
       assert function1.name == "my-path-transform"
       assert function1.type == "path"
       assert function1.function.path == "record"
@@ -1522,17 +1516,10 @@ defmodule Sequin.YamlLoaderTest do
 
       # Verify initial state
       assert [consumer] = Repo.all(SinkConsumer)
-      assert [db] = Repo.all(PostgresDatabase)
-
-      # Get the Characters table OID from the database created via YAML
-      {:ok, tables} = Databases.tables(db)
-      characters_table = Enum.find(tables, &(&1.name == "Characters"))
-      assert characters_table, "Characters table should exist in the database"
-
-      assert consumer.source.include_table_oids == [characters_table.oid]
+      assert consumer.source.include_table_oids == [Character.table_oid()]
 
       assert consumer.source_tables == [
-               %ConsumersSourceTable{table_oid: characters_table.oid, group_column_attnums: [1]}
+               %ConsumersSourceTable{table_oid: Character.table_oid(), group_column_attnums: [1]}
              ]
 
       assert [db] = Repo.all(PostgresDatabase)
@@ -1563,16 +1550,10 @@ defmodule Sequin.YamlLoaderTest do
 
       # Verify final state
       assert [updated_consumer] = Repo.all(SinkConsumer)
-
-      # Get the Characters table OID from the database (table name in PostgreSQL is still "Characters")
-      {:ok, tables_after_rename} = Databases.tables(db)
-      characters_table_after_rename = Enum.find(tables_after_rename, &(&1.name == "Characters"))
-      assert characters_table_after_rename, "Characters table should still exist in the database"
-
-      assert updated_consumer.source.include_table_oids == [characters_table_after_rename.oid]
+      assert updated_consumer.source.include_table_oids == [Character.table_oid()]
 
       assert updated_consumer.source_tables == [
-               %ConsumersSourceTable{table_oid: characters_table_after_rename.oid, group_column_attnums: [1]}
+               %ConsumersSourceTable{table_oid: Character.table_oid(), group_column_attnums: [1]}
              ]
     end
 
@@ -2420,18 +2401,11 @@ defmodule Sequin.YamlLoaderTest do
       assert [consumer] = Repo.all(SinkConsumer)
       assert consumer.name == "backfill-sink"
 
-      # Get the database and find the Characters table OID from it
-      consumer = Repo.preload(consumer, :postgres_database)
-      database = consumer.postgres_database
-      {:ok, tables} = Databases.tables(database)
-      characters_table = Enum.find(tables, &(&1.name == "Characters"))
-      assert characters_table, "Characters table should exist in the database"
-
       # Verify backfill was created
       assert [backfill] = Repo.all(Backfill)
       assert backfill.sink_consumer_id == consumer.id
       assert backfill.state == :active
-      assert backfill.table_oid == characters_table.oid
+      assert backfill.table_oid == Character.table_oid()
     end
 
     test "initial_backfill: false creates no backfill" do

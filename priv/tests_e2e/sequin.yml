@@ -10,7 +10,7 @@ account:
 databases:
   - name: "e2e-database"
     hostname: "${DATABASE_HOST:-postgres}"
-    port: 5432
+    port: 5433
     database: "${DATABASE_NAME:-sequin_test}"
     username: "${DATABASE_USER:-postgres}"
     password: "${DATABASE_PASSWORD:-postgres}"

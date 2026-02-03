@@ -44,7 +44,7 @@ defmodule Sequin.CheckSystemHealth do
 
       {:error, %Postgrex.Error{} = error} ->
         postgres_host = Repo.config()[:hostname] || "localhost"
-        postgres_port = Repo.config()[:port] || 5432
+        postgres_port = Repo.config()[:port] || 5433
 
         # Test Postgres reachability
         with {:ok, ipv6} <- NetworkUtils.check_ipv6(postgres_host),

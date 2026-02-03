@@ -167,7 +167,7 @@ end
     username: "postgres",
     password: "postgres",
     hostname: "localhost",
-    port: 5432
+    port: 5433
   )
 
 # Setup the load test table with proper schema

@@ -39,7 +39,7 @@ defmodule SequinWeb.YamlControllerTest do
           username: "postgres"
           password: "postgres"
           hostname: "localhost"
-          port: 5432
+          port: 5433
           database: "sequin_test"
           slot_name: "#{replication_slot()}"
           publication_name: "#{@publication}"
@@ -72,7 +72,7 @@ defmodule SequinWeb.YamlControllerTest do
                      "name" => "test-db",
                      "password" => "p******s",
                      "pool_size" => 10,
-                     "port" => 5432,
+                     "port" => 5433,
                      "ssl" => false,
                      "use_local_tunnel" => false,
                      "username" => "postgres",
@@ -112,7 +112,7 @@ defmodule SequinWeb.YamlControllerTest do
           username: "postgres"
           password: "postgres"
           hostname: "localhost"
-          port: 5432
+          port: 5433
           database: "sequin_test"
           slot_name: "#{replication_slot()}"
           publication_name: "#{@publication}"
@@ -137,7 +137,7 @@ defmodule SequinWeb.YamlControllerTest do
           username: "postgres"
           password: "new-password"
           hostname: "localhost"
-          port: 5432
+          port: 5433
           database: "sequin_test"
           slot_name: "#{replication_slot()}"
           publication_name: "#{@publication}"
@@ -181,7 +181,7 @@ defmodule SequinWeb.YamlControllerTest do
                      "name" => "test-db",
                      "password" => "new********d",
                      "pool_size" => 10,
-                     "port" => 5432,
+                     "port" => 5433,
                      "publication" => %{"name" => "characters_publication"},
                      "slot" => %{"name" => "__yaml_controller_test_slot__"},
                      "ssl" => false,
@@ -196,7 +196,7 @@ defmodule SequinWeb.YamlControllerTest do
                      "name" => "test-db",
                      "password" => "p******s",
                      "pool_size" => 10,
-                     "port" => 5432,
+                     "port" => 5433,
                      "publication" => %{"name" => "characters_publication"},
                      "slot" => %{"name" => "__yaml_controller_test_slot__"},
                      "ssl" => false,
@@ -242,7 +242,7 @@ defmodule SequinWeb.YamlControllerTest do
           destination_table_schema: public
       databases:
         - name: sequin_test
-          port: 5432
+          port: 5433
           ssl: false
           ipv6: false
           hostname: localhost
@@ -303,7 +303,7 @@ defmodule SequinWeb.YamlControllerTest do
           username: "postgres"
           password: "postgres"
           hostname: "localhost"
-          port: 5432
+          port: 5433
           database: "sequin_test"
           slot_name: "#{replication_slot()}"
           publication_name: "#{@publication}"
@@ -346,7 +346,7 @@ defmodule SequinWeb.YamlControllerTest do
                    "ipv6" => false,
                    "password" => "postgres",
                    "pool_size" => 10,
-                   "port" => 5432,
+                   "port" => 5433,
                    "ssl" => false,
                    "use_local_tunnel" => false,
                    "username" => "postgres"
@@ -390,7 +390,7 @@ defmodule SequinWeb.YamlControllerTest do
           username: "postgres"
           password: "postgres"
           hostname: "localhost"
-          port: 5432
+          port: 5433
           database: "sequin_test"
           slot_name: "#{replication_slot()}"
           publication_name: "#{@publication}"
@@ -443,7 +443,7 @@ defmodule SequinWeb.YamlControllerTest do
           username: "postgres"
           password: "postgres"
           hostname: "localhost"
-          port: 5432
+          port: 5433
           database: "sequin_test"
           slot_name: "#{replication_slot()}"
           publication_name: "#{@publication}"
@@ -480,7 +480,7 @@ defmodule SequinWeb.YamlControllerTest do
                "name" => "test-db",
                "password" => "p******s",
                "pool_size" => 10,
-               "port" => 5432,
+               "port" => 5433,
                "publication" => %{"name" => @publication},
                "slot" => %{"name" => replication_slot()},
                "ssl" => false,

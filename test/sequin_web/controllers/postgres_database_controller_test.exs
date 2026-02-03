@@ -471,7 +471,7 @@ defmodule SequinWeb.PostgresDatabaseControllerTest do
 
     test "returns error when URL is missing required components", %{conn: conn, slot_attrs: slot_attrs} do
       # Missing path (database name)
-      url = "postgresql://user:pass@localhost:5432"
+      url = "postgresql://user:pass@localhost:5433"
 
       payload = %{
         "url" => url,
@@ -486,7 +486,7 @@ defmodule SequinWeb.PostgresDatabaseControllerTest do
     end
 
     test "returns error when URL has query parameters", %{conn: conn, slot_attrs: slot_attrs} do
-      url = "postgresql://user:pass@localhost:5432/mydb?sslmode=require"
+      url = "postgresql://user:pass@localhost:5433/mydb?sslmode=require"
 
       payload = %{
         "url" => url,

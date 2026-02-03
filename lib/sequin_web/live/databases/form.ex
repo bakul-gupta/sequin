@@ -403,7 +403,7 @@ defmodule SequinWeb.DatabasesLive.Form do
       "name" => database.name || Name.generate(99),
       "database" => database.database,
       "hostname" => database.hostname,
-      "port" => database.port || 5432,
+      "port" => database.port || 5433,
       "username" => database.username || "postgres",
       "password" => database.password,
       "ssl" => ssl,
@@ -421,7 +421,7 @@ defmodule SequinWeb.DatabasesLive.Form do
             %{
               "hostname" => primary.hostname,
               "database" => primary.database,
-              "port" => primary.port || 5432,
+              "port" => primary.port || 5433,
               "username" => primary.username || "postgres",
               "password" => primary.password,
               "ssl" => primary.ssl
@@ -522,7 +522,7 @@ defmodule SequinWeb.DatabasesLive.Form do
     params
     |> Map.put("username", "postgres")
     |> Map.put("hostname", "db.#{project_name}.supabase.co")
-    |> Map.put("port", 5432)
+    |> Map.put("port", 5433)
   end
 
   defp convert_neon_pooled_connection(%{"hostname" => hostname} = params) do

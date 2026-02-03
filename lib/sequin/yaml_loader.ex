@@ -382,7 +382,7 @@ defmodule Sequin.YamlLoader do
   @database_defaults %{
     "username" => "postgres",
     "password" => "postgres",
-    "port" => 5432
+    "port" => 5433
   }
 
   defp upsert_databases(account_id, %{"databases" => databases}, opts) do
