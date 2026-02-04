@@ -85,15 +85,15 @@ defmodule Sequin.Runtime.SlotProcessorServer do
     id = Keyword.fetch!(opts, :id)
     slot_name = Keyword.fetch!(opts, :slot_name)
     postgres_database = Keyword.fetch!(opts, :postgres_database)
-    # Force pg_major_version to 13 to always use sequin_logical_messages table
-    postgres_database = %{postgres_database | pg_major_version: 13}
+    # # force pg_major_version to 13 for testing
+    # postgres_database = %{postgres_database | pg_major_version: 13}
 
     primary_database =
       if postgres_database.primary do
         # Make sure to avoid aliasing in connectioncache!
         primary = PostgresDatabase.from_primary(postgres_database.primary)
         # Force pg_major_version to 13 for primary database as well
-        primary = %{primary | pg_major_version: 13}
+        # primary = %{primary | pg_major_version: 13}
         Map.put(primary, :id, "primaryof-#{postgres_database.id}")
       end
 
@@ -501,10 +501,21 @@ defmodule Sequin.Runtime.SlotProcessorServer do
   @heartbeat_message_prefix "sequin.heartbeat.1"
   defp send_heartbeat(%State{} = state, payload) do
     conn = get_primary_conn(state)
+    pg_major_version = state.postgres_database.pg_major_version
 
-    case Postgres.upsert_logical_message(conn, state.id, @heartbeat_message_prefix, payload) do
-      {:ok, lsn} -> {:ok, lsn}
-      {:error, error} -> {:error, error}
+    if is_integer(pg_major_version) and pg_major_version < 14 do
+      case Postgres.upsert_logical_message(conn, state.id, @heartbeat_message_prefix, payload) do
+        {:ok, lsn} -> {:ok, lsn}
+        {:error, error} -> {:error, error}
+      end
+    else
+      case Postgres.query(conn, "SELECT pg_logical_emit_message(true, '#{@heartbeat_message_prefix}', $1)", [payload]) do
+        {:ok, %Postgrex.Result{rows: [[lsn_int]]}} ->
+          {:ok, lsn_int}
+
+        {:error, error} ->
+          {:error, error}
+      end
     end
   end
 
@@ -635,7 +646,11 @@ defmodule Sequin.Runtime.SlotProcessorServer do
     state
   end
 
-  defp logical_message_table_upsert?(%State{}, %SlotProcessor.Message{table_name: @logical_message_table_name}) do
+  defp logical_message_table_upsert?(
+         %State{postgres_database: %{pg_major_version: pg_major_version}},
+         %SlotProcessor.Message{table_name: @logical_message_table_name}
+       )
+       when pg_major_version < 14 do
     true
   end
 

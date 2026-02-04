@@ -377,7 +377,7 @@ defmodule Mix.Tasks.Bench do
       Databases.create_db(account.id, %{
         name: "benchmark-db-#{System.unique_integer([:positive])}",
         hostname: repo_config[:hostname] || "localhost",
-        port: repo_config[:port] || 5432,
+        port: repo_config[:port] || 5433,
         database: repo_config[:database] || "sequin_dev",
         username: repo_config[:username] || "postgres",
         password: repo_config[:password] || "postgres",

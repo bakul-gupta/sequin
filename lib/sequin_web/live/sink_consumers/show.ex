@@ -1396,6 +1396,7 @@ defmodule SequinWeb.SinkConsumersLive.Show do
   defp get_table_schema(_, _), do: nil
 
   defp consumer_title(%{sink: %{type: :azure_event_hub}}), do: "Azure Event Hub Sink"
+  defp consumer_title(%{sink: %{type: :benchmark}}), do: "Benchmark Sink"
   defp consumer_title(%{sink: %{type: :elasticsearch}}), do: "Elasticsearch Sink"
   defp consumer_title(%{sink: %{type: :gcp_pubsub}}), do: "GCP Pub/Sub Sink"
   defp consumer_title(%{sink: %{type: :http_push}}), do: "Webhook Sink"
