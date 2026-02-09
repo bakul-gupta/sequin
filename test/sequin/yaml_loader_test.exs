@@ -2203,7 +2203,7 @@ defmodule Sequin.YamlLoaderTest do
                      username: "primary_user"
                      password: "primary_password"
                      hostname: "primary.example.com"
-                     port: 5432
+                     port: 5433
                      database: "primary_db"
                """)
 
@@ -2218,7 +2218,7 @@ defmodule Sequin.YamlLoaderTest do
       assert db.primary.username == "primary_user"
       assert db.primary.password == "primary_password"
       assert db.primary.hostname == "primary.example.com"
-      assert db.primary.port == 5432
+      assert db.primary.port == 5433
       assert db.primary.database == "primary_db"
     end
 
@@ -2261,7 +2261,7 @@ defmodule Sequin.YamlLoaderTest do
                      username: "primary_user"
                      password: "primary_password"
                      hostname: "primary.example.com"
-                     port: 5432
+                     port: 5433
                      database: "primary_db"
                """)
 
@@ -2293,14 +2293,14 @@ defmodule Sequin.YamlLoaderTest do
                      username: "primary_user"
                      password: "primary_password"
                      hostname: "primary.example.com"
-                     port: 5432
+                     port: 5433
                      database: "primary_db"
                """)
 
       # Verify initial state
       assert [%PostgresDatabase{} = db] = Repo.all(PostgresDatabase)
       assert db.primary.hostname == "primary.example.com"
-      assert db.primary.port == 5432
+      assert db.primary.port == 5433
 
       # Now update primary parameters
       assert :ok =
@@ -2343,11 +2343,11 @@ defmodule Sequin.YamlLoaderTest do
 
                databases:
                  - name: "url-replica-db"
-                   url: "postgresql://postgres:postgres@localhost:5432/sequin_test"
+                   url: "postgresql://postgres:postgres@localhost:5433/sequin_test"
                    slot_name: "#{replication_slot()}"
                    publication_name: "#{@publication}"
                    primary:
-                     url: "postgresql://primary_user:primary_password@primary.example.com:5432/primary_db"
+                     url: "postgresql://primary_user:primary_password@primary.example.com:5433/primary_db"
                """)
 
       assert [%PostgresDatabase{} = db] = Repo.all(PostgresDatabase)
@@ -2363,7 +2363,7 @@ defmodule Sequin.YamlLoaderTest do
       assert db.primary.username == "primary_user"
       assert db.primary.password == "primary_password"
       assert db.primary.hostname == "primary.example.com"
-      assert db.primary.port == 5432
+      assert db.primary.port == 5433
       assert db.primary.database == "primary_db"
     end
   end
