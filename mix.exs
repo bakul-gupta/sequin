@@ -162,9 +162,8 @@ defmodule Sequin.MixProject do
         "ecto.setup",
         &remove_consumer_messages_log/1
       ],
-      test: ["ecto.create", "ecto.migrate", "test"],
-      # test: ["test"],
-      "test.unboxed": ["ecto.create --quiet", "ecto.migrate --quiet", "test --exclude unboxed"],
+      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      "test.unboxed": ["ecto.create --quiet", "ecto.migrate", "test --exclude unboxed"],
       "assets.setup": ["cmd --cd assets npm install"],
       "assets.build": ["tailwind sequin", "esbuild sequin"],
       "assets.deploy": [

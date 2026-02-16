@@ -289,7 +289,7 @@ defmodule Sequin.PostgresTest do
       assert {:error, _} = Postgres.get_publication(Repo, pub_name)
 
       # Create publication
-      assert :ok = Postgres.create_publication(Repo, pub_name)
+      assert :ok = Postgres.create_publication(Repo, pub_name, init_sql)
 
       # Verify publication exists with correct properties
       {:ok, pub_info} = Postgres.get_publication(Repo, pub_name)

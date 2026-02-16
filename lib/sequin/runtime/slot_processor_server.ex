@@ -85,16 +85,11 @@ defmodule Sequin.Runtime.SlotProcessorServer do
     id = Keyword.fetch!(opts, :id)
     slot_name = Keyword.fetch!(opts, :slot_name)
     postgres_database = Keyword.fetch!(opts, :postgres_database)
-    # # force pg_major_version to 13 for testing
-    # postgres_database = %{postgres_database | pg_major_version: 13}
 
     primary_database =
       if postgres_database.primary do
         # Make sure to avoid aliasing in connectioncache!
-        primary = PostgresDatabase.from_primary(postgres_database.primary)
-        # Force pg_major_version to 13 for primary database as well
-        # primary = %{primary | pg_major_version: 13}
-        Map.put(primary, :id, "primaryof-#{postgres_database.id}")
+        Map.put(PostgresDatabase.from_primary(postgres_database.primary), :id, "primaryof-#{postgres_database.id}")
       end
 
     test_pid = Keyword.get(opts, :test_pid)
