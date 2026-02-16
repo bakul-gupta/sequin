@@ -190,43 +190,43 @@ defmodule Sequin.Runtime.SlotProducerTest do
     end
 
     # -> not supported by yb
-    # test "add and clears transaction annotations", %{db: db} do
-    #   annotation = ~s|{"my": "annotations"}|
+    test "add and clears transaction annotations", %{db: db} do
+      annotation = ~s|{"my": "annotations"}|
 
-    #   UnboxedRepo.transaction(fn ->
-    #     CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
-    #     write_transaction_annotation(db, annotation)
-    #     CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
-    #     CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
-    #   end)
+      UnboxedRepo.transaction(fn ->
+        CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
+        write_transaction_annotation(db, annotation)
+        CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
+        CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
+      end)
 
-    #   messages = receive_messages(3)
+      messages = receive_messages(3)
 
-    #   assert [
-    #            %Message{transaction_annotations: nil, commit_idx: 0},
-    #            %Message{transaction_annotations: ^annotation, commit_idx: 2},
-    #            %Message{transaction_annotations: ^annotation, commit_idx: 3}
-    #          ] = messages
-    # end
+      assert [
+               %Message{transaction_annotations: nil, commit_idx: 0},
+               %Message{transaction_annotations: ^annotation, commit_idx: 2},
+               %Message{transaction_annotations: ^annotation, commit_idx: 3}
+             ] = messages
+    end
 
     # -> not supported by yb
-    # test "clears transaction annotation when directed", %{db: db} do
-    #   annotation = ~s|{"my": "annotations"}|
+    test "clears transaction annotation when directed", %{db: db} do
+      annotation = ~s|{"my": "annotations"}|
 
-    #   UnboxedRepo.transaction(fn ->
-    #     write_transaction_annotation(db, annotation)
-    #     CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
-    #     clear_transaction_annotation(db)
-    #     CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
-    #   end)
+      UnboxedRepo.transaction(fn ->
+        write_transaction_annotation(db, annotation)
+        CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
+        clear_transaction_annotation(db)
+        CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
+      end)
 
-    #   messages = receive_messages(2)
+      messages = receive_messages(2)
 
-    #   assert [
-    #            %Message{transaction_annotations: ^annotation, commit_idx: 1},
-    #            %Message{transaction_annotations: nil, commit_idx: 3}
-    #          ] = messages
-    # end
+      assert [
+               %Message{transaction_annotations: ^annotation, commit_idx: 1},
+               %Message{transaction_annotations: nil, commit_idx: 3}
+             ] = messages
+    end
 
     @tag skip_start: true
     test "sends acks to the replication slot on an interval", %{db: db, slot: slot} do
@@ -249,26 +249,26 @@ defmodule Sequin.Runtime.SlotProducerTest do
     end
 
     # -> not supported by yb
-    # test "logical messages flow through", %{db: db} do
-    #   Postgres.query!(db, "select pg_logical_emit_message(true, 'my-msg', 'my-data')")
+    test "logical messages flow through", %{db: db} do
+      Postgres.query!(db, "select pg_logical_emit_message(true, 'my-msg', 'my-data')")
 
-    #   assert_receive_message_kinds([:logical])
-    # end
+      assert_receive_message_kinds([:logical])
+    end
 
-    # @tag start_opts: [batch_flush_interval: 1]
-    # test "non-transactional logical message flush is skipped", %{db: db} do
-    #   Postgres.query!(db, "select pg_logical_emit_message(false, 'skip-me', 'body')")
-    #   Postgres.query!(db, "select pg_logical_emit_message(true, 'see-me', 'body')")
+    @tag start_opts: [batch_flush_interval: 1]
+    test "non-transactional logical message flush is skipped", %{db: db} do
+      Postgres.query!(db, "select pg_logical_emit_message(false, 'skip-me', 'body')")
+      Postgres.query!(db, "select pg_logical_emit_message(true, 'see-me', 'body')")
 
-    #   [msg] = receive_messages(1)
-    #   assert msg.kind == :logical
-    #   assert msg.payload =~ "see-me"
+      [msg] = receive_messages(1)
+      assert msg.kind == :logical
+      assert msg.payload =~ "see-me"
 
-    #   # The batch marker should have a valid LSN from the logical message
-    #   commit_lsn = msg.commit_lsn
-    #   assert commit_lsn
-    #   assert_receive {:batch_marker_received, %BatchMarker{high_watermark_wal_cursor: %{commit_lsn: ^commit_lsn}}}
-    # end
+      # The batch marker should have a valid LSN from the logical message
+      commit_lsn = msg.commit_lsn
+      assert commit_lsn
+      assert_receive {:batch_marker_received, %BatchMarker{high_watermark_wal_cursor: %{commit_lsn: ^commit_lsn}}}
+    end
 
     test "receives relation messages" do
       CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
@@ -337,27 +337,27 @@ defmodule Sequin.Runtime.SlotProducerTest do
 
     # -> not supported by yb
     # get current_wal_lsn is not supported by yb
-    # @tag skip_start: true
-    # test "skips messages below restart WAL cursor", %{slot: slot, db: db} do
-    #   # Insert first character
-    #   CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
+    @tag skip_start: true
+    test "skips messages below restart WAL cursor", %{slot: slot, db: db} do
+      # Insert first character
+      CharacterFactory.insert_character!(%{}, repo: UnboxedRepo)
 
-    #   # Get current WAL position after first insert
-    #   {:ok, current_lsn} = Postgres.current_wal_lsn(db)
+      # Get current WAL position after first insert
+      {:ok, current_lsn} = Postgres.current_wal_lsn(db)
 
-    #   # Set restart cursor to current position (this will skip the first message)
-    #   Replication.put_restart_wal_cursor!(slot.id, %{commit_lsn: current_lsn, commit_idx: 0})
+      # Set restart cursor to current position (this will skip the first message)
+      Replication.put_restart_wal_cursor!(slot.id, %{commit_lsn: current_lsn, commit_idx: 0})
 
-    #   # Insert second character (this will be after the restart cursor)
-    #   CharacterFactory.insert_character!(%{name: "Character 2"}, repo: UnboxedRepo)
+      # Insert second character (this will be after the restart cursor)
+      CharacterFactory.insert_character!(%{name: "Character 2"}, repo: UnboxedRepo)
 
-    #   start_slot_producer(slot)
+      start_slot_producer(slot)
 
-    #   [msg] = receive_messages(1)
+      [msg] = receive_messages(1)
 
-    #   assert msg.kind == :insert
-    #   assert msg.payload =~ "Character 2"
-    # end
+      assert msg.kind == :insert
+      assert msg.payload =~ "Character 2"
+    end
 
     @tag start_opts: [processor_opts: [consumer_demand: :manual]]
     test "buffers messages when no demand, then delivers all when demand is restored", %{
@@ -504,13 +504,13 @@ defmodule Sequin.Runtime.SlotProducerTest do
   end
 
   # -> not supported by yb
-  # defp write_transaction_annotation(db, content) do
-  #   Postgres.query(db, "select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', $1);", [content])
-  # end
+  defp write_transaction_annotation(db, content) do
+    Postgres.query(db, "select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', $1);", [content])
+  end
 
-  # defp clear_transaction_annotation(db) do
-  #   Postgres.query(db, "select pg_logical_emit_message(true, 'sequin:transaction_annotations.clear', '');")
-  # end
+  defp clear_transaction_annotation(db) do
+    Postgres.query(db, "select pg_logical_emit_message(true, 'sequin:transaction_annotations.clear', '');")
+  end
 
   defp message_kinds(msgs) do
     Enum.map(msgs, & &1.kind)

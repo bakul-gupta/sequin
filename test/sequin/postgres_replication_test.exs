@@ -465,111 +465,111 @@ defmodule Sequin.PostgresReplicationTest do
     end
 
     # -> not supported by yb
-    # test "transaction annotations are propagated correctly", %{event_character_consumer: consumer} do
-    #   # Insert two characters in the same transaction with annotations
-    #   {:ok, {character1, character2}} =
-    #     UnboxedRepo.transaction(fn ->
-    #       # Set initial transaction annotations
-    #       {:ok, _} =
-    #         UnboxedRepo.query(
-    #           ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "yahya" }')|
-    #         )
+    test "transaction annotations are propagated correctly", %{event_character_consumer: consumer} do
+      # Insert two characters in the same transaction with annotations
+      {:ok, {character1, character2}} =
+        UnboxedRepo.transaction(fn ->
+          # Set initial transaction annotations
+          {:ok, _} =
+            UnboxedRepo.query(
+              ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "yahya" }')|
+            )
 
-    #       c1 = CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
-    #       c2 = CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
-    #       {c1, c2}
-    #     end)
+          c1 = CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
+          c2 = CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
+          {c1, c2}
+        end)
 
-    #   # Wait for the annotated messages to be handled
-    #   await_messages(2)
+      # Wait for the annotated messages to be handled
+      await_messages(2)
 
-    #   # Insert a character without annotations
-    #   character3 = CharacterFactory.insert_character!([name: "Duncan"], repo: UnboxedRepo)
+      # Insert a character without annotations
+      character3 = CharacterFactory.insert_character!([name: "Duncan"], repo: UnboxedRepo)
 
-    #   # Wait for the message to be handled
-    #   await_messages(1)
+      # Wait for the message to be handled
+      await_messages(1)
 
-    #   # Insert final character with new annotations
-    #   {:ok, character4} =
-    #     UnboxedRepo.transaction(fn ->
-    #       # Set new annotations
-    #       {:ok, _} =
-    #         UnboxedRepo.query(
-    #           ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "spice": "flow" }')|
-    #         )
+      # Insert final character with new annotations
+      {:ok, character4} =
+        UnboxedRepo.transaction(fn ->
+          # Set new annotations
+          {:ok, _} =
+            UnboxedRepo.query(
+              ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "spice": "flow" }')|
+            )
 
-    #       CharacterFactory.insert_character!([name: "Chani"], repo: UnboxedRepo)
-    #     end)
+          CharacterFactory.insert_character!([name: "Chani"], repo: UnboxedRepo)
+        end)
 
-    #   # Wait for final messages to be handled
-    #   await_messages(1)
+      # Wait for final messages to be handled
+      await_messages(1)
 
-    #   # Fetch all consumer events
-    #   events = list_messages(consumer)
+      # Fetch all consumer events
+      events = list_messages(consumer)
 
-    #   # Find events for each character
-    #   event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
-    #   event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
-    #   event3 = Enum.find(events, &(hd(&1.record_pks) == to_string(character3.id)))
-    #   event4 = Enum.find(events, &(hd(&1.record_pks) == to_string(character4.id)))
+      # Find events for each character
+      event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
+      event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
+      event3 = Enum.find(events, &(hd(&1.record_pks) == to_string(character3.id)))
+      event4 = Enum.find(events, &(hd(&1.record_pks) == to_string(character4.id)))
 
-    #   # First two events should have the same annotations
-    #   assert event1.data.metadata.transaction_annotations == %{"username" => "yahya"}
-    #   assert event2.data.metadata.transaction_annotations == %{"username" => "yahya"}
+      # First two events should have the same annotations
+      assert event1.data.metadata.transaction_annotations == %{"username" => "yahya"}
+      assert event2.data.metadata.transaction_annotations == %{"username" => "yahya"}
 
-    #   # Third event should have no annotations
-    #   assert event3.data.metadata.transaction_annotations == nil
+      # Third event should have no annotations
+      assert event3.data.metadata.transaction_annotations == nil
 
-    #   # Fourth event should have new annotations
-    #   assert event4.data.metadata.transaction_annotations == %{"spice" => "flow"}
-    # end
+      # Fourth event should have new annotations
+      assert event4.data.metadata.transaction_annotations == %{"spice" => "flow"}
+    end
 
     # -> not supported by yb
-    # @tag capture_log: true
-    # test "invalid transaction annotations are ignored", %{event_character_consumer: consumer} do
-    #   # Insert a character with invalid JSON annotations
-    #   {:ok, character1} =
-    #     UnboxedRepo.transaction(fn ->
-    #       # Set invalid JSON as transaction annotations
-    #       {:ok, _} =
-    #         UnboxedRepo.query(
-    #           "select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ invalid json }')"
-    #         )
+    @tag capture_log: true
+    test "invalid transaction annotations are ignored", %{event_character_consumer: consumer} do
+      # Insert a character with invalid JSON annotations
+      {:ok, character1} =
+        UnboxedRepo.transaction(fn ->
+          # Set invalid JSON as transaction annotations
+          {:ok, _} =
+            UnboxedRepo.query(
+              "select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ invalid json }')"
+            )
 
-    #       CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
-    #     end)
+          CharacterFactory.insert_character!([name: "Paul"], repo: UnboxedRepo)
+        end)
 
-    #   # Wait for the message to be handled
-    #   await_messages(1)
+      # Wait for the message to be handled
+      await_messages(1)
 
-    #   # Insert another character with valid annotations
-    #   {:ok, character2} =
-    #     UnboxedRepo.transaction(fn ->
-    #       # Set valid annotations
-    #       {:ok, _} =
-    #         UnboxedRepo.query(
-    #           ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "leto" }')|
-    #         )
+      # Insert another character with valid annotations
+      {:ok, character2} =
+        UnboxedRepo.transaction(fn ->
+          # Set valid annotations
+          {:ok, _} =
+            UnboxedRepo.query(
+              ~s|select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', '{ "username": "leto" }')|
+            )
 
-    #       CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
-    #     end)
+          CharacterFactory.insert_character!([name: "Leto"], repo: UnboxedRepo)
+        end)
 
-    #   # Wait for the message to be handled
-    #   await_messages(1)
+      # Wait for the message to be handled
+      await_messages(1)
 
-    #   # Fetch all consumer events
-    #   events = list_messages(consumer)
+      # Fetch all consumer events
+      events = list_messages(consumer)
 
-    #   # Find events for each character
-    #   event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
-    #   event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
+      # Find events for each character
+      event1 = Enum.find(events, &(hd(&1.record_pks) == to_string(character1.id)))
+      event2 = Enum.find(events, &(hd(&1.record_pks) == to_string(character2.id)))
 
-    #   # First event should have no annotations due to parse error
-    #   assert event1.data.metadata.transaction_annotations == nil
+      # First event should have no annotations due to parse error
+      assert event1.data.metadata.transaction_annotations == nil
 
-    #   # Second event should have valid annotations
-    #   assert event2.data.metadata.transaction_annotations == %{"username" => "leto"}
-    # end
+      # Second event should have valid annotations
+      assert event2.data.metadata.transaction_annotations == %{"username" => "leto"}
+    end
 
     # Postgres quirk - the logical decoding process does not distinguish between an empty array and an array with an empty string.
     # https://chatgpt.com/share/6707334f-0978-8006-8358-ec2300d759a4
@@ -635,30 +635,30 @@ defmodule Sequin.PostgresReplicationTest do
     end
 
     # -> not supported by yb
-    # @tag start_opts: [
-    #        heartbeat_interval: 1,
-    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-    #      ]
-    # test "replication slot advances even when database is idle", %{source_db: db} do
-    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
-    #   assert_lsn_progress(init_lsn, db)
-    # end
+    @tag start_opts: [
+           heartbeat_interval: 1,
+           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+         ]
+    test "replication slot advances even when database is idle", %{source_db: db} do
+      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+      assert_lsn_progress(init_lsn, db)
+    end
 
-    # @tag start_opts: [
-    #        heartbeat_interval: to_timeout(minute: 1),
-    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-    #      ]
-    # test "replication slot advances after insert", %{source_db: db, event_character_consumer: consumer} do
-    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    @tag start_opts: [
+           heartbeat_interval: to_timeout(minute: 1),
+           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+         ]
+    test "replication slot advances after insert", %{source_db: db, event_character_consumer: consumer} do
+      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
 
-    #   CharacterFactory.insert_character!([], repo: UnboxedRepo)
+      CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
-    #   assert_lsn_progress(init_lsn, db)
-    #   [consumer_event] = receive_messages(consumer, 1)
-    #   commit_lsn = consumer_event.commit_lsn
+      assert_lsn_progress(init_lsn, db)
+      [consumer_event] = receive_messages(consumer, 1)
+      commit_lsn = consumer_event.commit_lsn
 
-    #   assert {:ok, ^commit_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
-    # end
+      assert {:ok, ^commit_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    end
 
     @tag :jepsen
     @tag capture_log: true
@@ -1148,35 +1148,35 @@ defmodule Sequin.PostgresReplicationTest do
     end
 
     # -> not supported by yb
-    # test "emits heartbeat messages for latest postgres version", %{pg_replication: pg_replication} do
-    #   # Attempt to start replication with the non-existent slot
-    #   start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
+    test "emits heartbeat messages for latest postgres version", %{pg_replication: pg_replication} do
+      # Attempt to start replication with the non-existent slot
+      start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
 
-    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
-    #   assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
+      assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
+      assert_receive {SlotProcessorServer, :heartbeat_received}, 1000
 
-    #   # Verify that the Health status was updated
-    #   {:ok, health} =
-    #     Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
+      # Verify that the Health status was updated
+      {:ok, health} =
+        Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
 
-    #   check = Enum.find(health.checks, &(&1.slug == :replication_messages))
-    #   assert check.status == :healthy
-    # end
+      check = Enum.find(health.checks, &(&1.slug == :replication_messages))
+      assert check.status == :healthy
+    end
 
-    #   test "emits heartbeat messages for older postgres version", %{pg_replication: pg_replication} do
-    #     # Attempt to start replication with the non-existent slot
-    #     start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
+    test "emits heartbeat messages for older postgres version", %{pg_replication: pg_replication} do
+      # Attempt to start replication with the non-existent slot
+      start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
 
-    #     assert_receive {SlotProcessorServer, :heartbeat_received}, 10_000
-    #     assert_receive {SlotProcessorServer, :heartbeat_received}, 10_000
+      assert_receive {SlotProcessorServer, :heartbeat_received}, 10_000
+      assert_receive {SlotProcessorServer, :heartbeat_received}, 10_000
 
-    #     # Verify that the Health status was updated
-    #     {:ok, health} =
-    #       Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
+      # Verify that the Health status was updated
+      {:ok, health} =
+        Sequin.Health.health(%PostgresReplicationSlot{id: pg_replication.id, inserted_at: DateTime.utc_now()})
 
-    #     check = Enum.find(health.checks, &(&1.slug == :replication_messages))
-    #     assert check.status == :healthy
-    #   end
+      check = Enum.find(health.checks, &(&1.slug == :replication_messages))
+      assert check.status == :healthy
+    end
   end
 
   describe "PostgresReplicationSlot end-to-end with sequences" do
@@ -1608,26 +1608,26 @@ defmodule Sequin.PostgresReplicationTest do
     end
 
     # -> not supported by yb
-    # @tag start_opts: [
-    #        heartbeat_interval: 1,
-    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-    #      ]
-    # test "replication slot advances even when database is idle", %{source_db: db} do
-    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
-    #   assert_lsn_progress(init_lsn, db)
-    # end
+    @tag start_opts: [
+           heartbeat_interval: 1,
+           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+         ]
+    test "replication slot advances even when database is idle", %{source_db: db} do
+      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+      assert_lsn_progress(init_lsn, db)
+    end
 
-    # @tag start_opts: [
-    #        heartbeat_interval: to_timeout(minute: 1),
-    #        slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
-    #      ]
-    # test "replication slot advances after insert", %{source_db: db} do
-    #   {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
+    @tag start_opts: [
+           heartbeat_interval: to_timeout(minute: 1),
+           slot_producer_opts: [ack_interval: 5, restart_wal_cursor_update_interval: 5]
+         ]
+    test "replication slot advances after insert", %{source_db: db} do
+      {:ok, init_lsn} = Postgres.confirmed_flush_lsn(db, replication_slot())
 
-    #   CharacterFactory.insert_character!([], repo: UnboxedRepo)
+      CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
-    #   assert_lsn_progress(init_lsn, db)
-    # end
+      assert_lsn_progress(init_lsn, db)
+    end
   end
 
   defp start_replication!(replication_slot, opts) do
@@ -1864,8 +1864,6 @@ defmodule Sequin.PostgresReplicationTest do
   def drain_messages(%Sequin.Consumers.SinkConsumer{} = consumer) do
     consumer = Repo.preload(consumer, :postgres_database)
 
-    IO.puts("[drain_messages] Draining messages for consumer: #{consumer.name} (id: #{consumer.id})")
-
     # Keep draining until no more messages for 3 consecutive checks
     drain_consumer_loop(consumer, 10, 0)
   end
@@ -1876,13 +1874,11 @@ defmodule Sequin.PostgresReplicationTest do
 
     if length(messages) > 0 do
       # Print details about messages being drained
-      IO.puts("[drain_messages] Draining #{length(messages)} message(s) from consumer: #{consumer.name}")
 
       Enum.each(messages, fn msg ->
         action = if msg.data, do: msg.data.action, else: :unknown
         table_oid = msg.table_oid
         commit_lsn = msg.commit_lsn
-        IO.puts("  - Message: action=#{action}, table_oid=#{table_oid}, commit_lsn=#{commit_lsn}, ack_id=#{msg.ack_id}")
       end)
 
       # Extract ack_ids and acknowledge all messages
@@ -1890,7 +1886,6 @@ defmodule Sequin.PostgresReplicationTest do
 
       case SlotMessageStore.messages_succeeded_returning_messages(consumer, ack_ids) do
         {:ok, _} ->
-          IO.puts("[drain_messages] Successfully acknowledged #{length(messages)} message(s)")
           # Wait a bit and check again for more messages
           Process.sleep(200)
           # Reset stable_count since we found messages
@@ -1906,10 +1901,6 @@ defmodule Sequin.PostgresReplicationTest do
         {:ok, 0} ->
           if stable_count >= 3 do
             # No messages for 3 consecutive checks, we're stable
-            IO.puts(
-              "[drain_messages] No messages remaining for consumer: #{consumer.name} (stable for #{stable_count} checks)"
-            )
-
             :ok
           else
             # Still need to verify stability
@@ -1919,7 +1910,6 @@ defmodule Sequin.PostgresReplicationTest do
 
         {:ok, count} ->
           # Still have messages, wait and retry
-          IO.puts("[drain_messages] Still have #{count} message(s) remaining, retrying...")
           Process.sleep(200)
           # Reset stable_count since we found messages
           drain_consumer_loop(consumer, retries_left - 1, 0)
@@ -2097,7 +2087,6 @@ defmodule Sequin.PostgresReplicationTest do
 
     if drained_count > 0 do
       # Found messages, reset stability and continue
-      IO.puts("[drain_flush_events] Drained #{drained_count} flush event(s), continuing...")
       Process.sleep(200)
       drain_flush_events_with_retry(retries_left - 1, 0)
     else
@@ -2118,7 +2107,6 @@ defmodule Sequin.PostgresReplicationTest do
   defp drain_flush_events_loop(count, acc) do
     receive do
       {SlotProcessorServer, :flush_messages, flush_count} ->
-        IO.puts("[drain_flush_events] Drained flush event with #{flush_count} messages")
         drain_flush_events_loop(count - 1, acc + flush_count)
     after
       0 ->
