@@ -280,24 +280,25 @@ defmodule Sequin.PostgresTest do
       assert pub_info["pubname"] == pub_name
     end
 
-    # test "creates a publication with custom init_sql" do
-    #   pub_name = "test_pub_custom"
-    #   init_sql = "CREATE PUBLICATION test_pub_custom FOR TABLES IN SCHEMA public WITH (publish = 'insert, update')"
+    # -> not supported by yb
+    test "creates a publication with custom init_sql" do
+      pub_name = "test_pub_custom"
+      init_sql = "CREATE PUBLICATION test_pub_custom FOR TABLES IN SCHEMA public WITH (publish = 'insert, update')"
 
-    #   # Publication shouldn't exist yet
-    #   assert {:error, _} = Postgres.get_publication(Repo, pub_name)
+      # Publication shouldn't exist yet
+      assert {:error, _} = Postgres.get_publication(Repo, pub_name)
 
-    #   # Create publication
-    #   assert :ok = Postgres.create_publication(Repo, pub_name)
+      # Create publication
+      assert :ok = Postgres.create_publication(Repo, pub_name)
 
-    #   # Verify publication exists with correct properties
-    #   {:ok, pub_info} = Postgres.get_publication(Repo, pub_name)
-    #   assert pub_info["pubname"] == pub_name
-    #   assert pub_info["pubinsert"] == true
-    #   assert pub_info["pubupdate"] == true
-    #   # Should be false because we only specified insert, update
-    #   assert pub_info["pubdelete"] == false
-    # end
+      # Verify publication exists with correct properties
+      {:ok, pub_info} = Postgres.get_publication(Repo, pub_name)
+      assert pub_info["pubname"] == pub_name
+      assert pub_info["pubinsert"] == true
+      assert pub_info["pubupdate"] == true
+      # Should be false because we only specified insert, update
+      assert pub_info["pubdelete"] == false
+    end
 
     test "returns error for invalid init_sql" do
       pub_name = "test_pub_invalid"
