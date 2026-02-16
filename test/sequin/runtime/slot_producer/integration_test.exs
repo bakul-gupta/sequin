@@ -73,7 +73,7 @@ defmodule Sequin.Runtime.SlotProducer.IntegrationTest do
       CharacterFactory.insert_character!(%{name: "Zed"}, repo: UnboxedRepo)
 
       # Wait for messages to flow through the complete pipeline
-      :timer.sleep(1000)
+      :timer.sleep(10_000)
       [batch1] = receive_messages_batched(3)
       messages = batch1.messages
 

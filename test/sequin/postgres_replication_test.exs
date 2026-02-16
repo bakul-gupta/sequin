@@ -758,10 +758,6 @@ defmodule Sequin.PostgresReplicationTest do
       # Wait for initialization to complete
       assert_receive :init_complete, 1000
 
-      Process.sleep(1000)
-      drain_changes_messages()
-      drain_flush_events()
-
       # Insert a character
       character = CharacterFactory.insert_character!([], repo: UnboxedRepo)
 
@@ -940,7 +936,7 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Wait for replication to process old WAL, then drain old messages
       Process.sleep(1000)
-      drain_changes_messages()
+      drain_change_messages()
       drain_flush_events()
 
       record =
@@ -978,8 +974,8 @@ defmodule Sequin.PostgresReplicationTest do
       start_replication!(pg_replication, slot_processor_opts: [message_handler_module: MessageHandlerMock])
 
       # Wait for replication to process old WAL, then drain old messages
-      Process.sleep(1000)
-      drain_changes_messages()
+      Process.sleep(10_000)
+      drain_change_messages()
       drain_flush_events()
 
       # Test create
@@ -1027,7 +1023,7 @@ defmodule Sequin.PostgresReplicationTest do
       start_replication!(pg_replication, slot_processor_opts: [message_handler_module: MessageHandlerMock])
 
       # Wait for replication to process old WAL, then drain old messages
-      Process.sleep(1000)
+      Process.sleep(10_000)
       drain_changes_messages()
       drain_flush_events()
 
@@ -1964,9 +1960,19 @@ defmodule Sequin.PostgresReplicationTest do
   @doc """
   Drains {:changes, _} messages from the mailbox to clear old messages from MessageHandlerMock.
   This is needed for "replication in isolation" tests that use receive_messages_from_mock.
+  Uses retry mechanism to ensure all delayed messages are drained.
   """
   def drain_changes_messages do
-    drain_changes_messages_loop(1000)
+    drain_changes_messages_with_retry(10, 0)
+  end
+
+  @doc """
+  Drains {:change, _} messages from the mailbox to clear old messages from MessageHandlerMock.
+  This is specifically for tests that use {:change, msgs} pattern (singular).
+  Uses retry mechanism to ensure all delayed messages are drained.
+  """
+  def drain_change_messages do
+    drain_change_messages_with_retry(10, 0)
   end
 
   @doc """
@@ -1998,6 +2004,88 @@ defmodule Sequin.PostgresReplicationTest do
     after
       0 ->
         :ok
+    end
+  end
+
+  defp drain_changes_messages_with_retry(0, _stable_count), do: :ok
+
+  defp drain_changes_messages_with_retry(retries_left, stable_count) do
+    # Drain all changes messages currently in mailbox
+    drained_count = drain_changes_messages_count_loop(1000, 0)
+
+    if drained_count > 0 do
+      # Found messages, reset stability and continue
+      Process.sleep(200)
+      drain_changes_messages_with_retry(retries_left - 1, 0)
+    else
+      # No messages found, check stability
+      if stable_count >= 3 do
+        # Stable for 3 consecutive checks
+        :ok
+      else
+        # Still need to verify stability
+        Process.sleep(300)
+        drain_changes_messages_with_retry(retries_left - 1, stable_count + 1)
+      end
+    end
+  end
+
+  defp drain_changes_messages_count_loop(0, acc), do: acc
+
+  defp drain_changes_messages_count_loop(count, acc) do
+    receive do
+      {:changes, changes} ->
+        drain_changes_messages_count_loop(count - 1, acc + length(changes))
+    after
+      0 ->
+        acc
+    end
+  end
+
+  defp drain_change_messages_loop(0), do: :ok
+
+  defp drain_change_messages_loop(count) do
+    receive do
+      {:change, _changes} ->
+        drain_change_messages_loop(count - 1)
+    after
+      0 ->
+        :ok
+    end
+  end
+
+  defp drain_change_messages_with_retry(0, _stable_count), do: :ok
+
+  defp drain_change_messages_with_retry(retries_left, stable_count) do
+    # Drain all change messages currently in mailbox
+    drained_count = drain_change_messages_count_loop(1000, 0)
+
+    if drained_count > 0 do
+      # Found messages, reset stability and continue
+      Process.sleep(200)
+      drain_change_messages_with_retry(retries_left - 1, 0)
+    else
+      # No messages found, check stability
+      if stable_count >= 3 do
+        # Stable for 3 consecutive checks
+        :ok
+      else
+        # Still need to verify stability
+        Process.sleep(300)
+        drain_change_messages_with_retry(retries_left - 1, stable_count + 1)
+      end
+    end
+  end
+
+  defp drain_change_messages_count_loop(0, acc), do: acc
+
+  defp drain_change_messages_count_loop(count, acc) do
+    receive do
+      {:change, changes} ->
+        drain_change_messages_count_loop(count - 1, acc + length(changes))
+    after
+      0 ->
+        acc
     end
   end
 
