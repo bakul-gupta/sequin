@@ -10,12 +10,7 @@ defmodule Sequin.TestSupport.ReplicationSlots do
 
   To navigate around this, we reset and create the slot once before all tests here.
   """
-  import Ecto.Query
-
-  alias Sequin.Consumers
-  alias Sequin.Replication.PostgresReplicationSlot
   alias Sequin.Repo
-  alias Sequin.Runtime.SlotMessageStore
 
   @doc """
   To add a replication slot used in a test, you must register it here.

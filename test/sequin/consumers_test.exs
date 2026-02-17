@@ -693,7 +693,6 @@ defmodule Sequin.ConsumersTest do
 
       # Check the size is positive
       {:ok, size} = Consumers.consumer_partition_size_bytes(consumer)
-      IO.inspect(size)
       assert is_integer(size)
       assert size > 0
 

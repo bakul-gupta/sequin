@@ -20,8 +20,6 @@ config :phoenix_live_view,
 
 config :sequin, HttpPushSqsPipeline, req_opts: [plug: {Req.Test, HttpPushSqsPipeline}]
 config :sequin, Oban, testing: :manual, prefix: "sequin_config"
-# config :sequin, Oban, enable: false
-# config :sequin, Oban, testing: :manual, queues: false, plugins: false, prefix: "sequin_config"
 
 config :sequin, Sequin,
   datetime_mod: Sequin.TestSupport.DateTimeMock,
@@ -49,8 +47,6 @@ config :sequin, Sequin.Repo,
   queue_interval: 1000,
   ssl: false,
   types: PostgrexTypes
-
-# migration_lock: :pg_advisory_lock
 
 config :sequin, Sequin.Runtime.SlotProducer, batch_flush_interval: 10
 
