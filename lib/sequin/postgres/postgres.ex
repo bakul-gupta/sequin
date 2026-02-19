@@ -221,10 +221,18 @@ defmodule Sequin.Postgres do
 
   def get_pg_major_version(conn) do
     with {:ok, %{rows: [[version]]}} <- query(conn, "select version()") do
-      # Extract major version number from version string
+      # YugabyteDB: version string contains "-YB-" (e.g. "PostgreSQL 11.2-YB-2.5.1.0-b0 ...").
+      # YugabyteDB does not support pg_logical_emit_message, so we cap the version at 13
+      # to trigger the table-based fallback path (sequin_logical_messages) used for PG < 14.
+      yugabyte? = String.contains?(version, "-YB-")
+
       case Regex.run(~r/PostgreSQL (\d+)/, version) do
-        [_, major_version] -> {:ok, String.to_integer(major_version)}
-        _ -> {:error, Error.service(message: "Could not parse PostgreSQL version", service: :postgres)}
+        [_, major_version] ->
+          pg_version = String.to_integer(major_version)
+          {:ok, if(yugabyte?, do: min(pg_version, 13), else: pg_version)}
+
+        _ ->
+          {:error, Error.service(message: "Could not parse PostgreSQL version", service: :postgres)}
       end
     end
   end

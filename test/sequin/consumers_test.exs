@@ -680,6 +680,7 @@ defmodule Sequin.ConsumersTest do
     end
   end
 
+  # -> not supported by yb
   describe "consumer_partition_size_bytes/1" do
     test "returns the size of the consumer partition" do
       consumer = ConsumersFactory.insert_sink_consumer!()

@@ -255,6 +255,7 @@ defmodule Sequin.Runtime.SlotProducerTest do
       assert_receive_message_kinds([:logical])
     end
 
+    # -> not supported by yb
     @tag start_opts: [batch_flush_interval: 1]
     test "non-transactional logical message flush is skipped", %{db: db} do
       Postgres.query!(db, "select pg_logical_emit_message(false, 'skip-me', 'body')")
@@ -336,7 +337,6 @@ defmodule Sequin.Runtime.SlotProducerTest do
     end
 
     # -> not supported by yb
-    # get current_wal_lsn is not supported by yb
     @tag skip_start: true
     test "skips messages below restart WAL cursor", %{slot: slot, db: db} do
       # Insert first character
@@ -503,7 +503,6 @@ defmodule Sequin.Runtime.SlotProducerTest do
     assert_lists_equal(expected_kinds, message_kinds(messages))
   end
 
-  # -> not supported by yb
   defp write_transaction_annotation(db, content) do
     Postgres.query(db, "select pg_logical_emit_message(true, 'sequin:transaction_annotations.set', $1);", [content])
   end

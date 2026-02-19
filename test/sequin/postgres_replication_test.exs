@@ -1163,6 +1163,7 @@ defmodule Sequin.PostgresReplicationTest do
       assert check.status == :healthy
     end
 
+    # -> not supported by yb
     test "emits heartbeat messages for older postgres version", %{pg_replication: pg_replication} do
       # Attempt to start replication with the non-existent slot
       start_replication!(pg_replication, slot_processor_opts: [heartbeat_interval: 5])
