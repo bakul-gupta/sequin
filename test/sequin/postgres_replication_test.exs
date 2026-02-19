@@ -185,8 +185,6 @@ defmodule Sequin.PostgresReplicationTest do
           Runtime.Supervisor.stop_replication(sup, pg_replication)
           # Drain any remaining messages and flush events
           drain_messages_for_slot(replication_slot())
-          drain_flush_events()
-          # Clear test process mailbox
           flush_test_mailbox()
         rescue
           _ -> :ok
@@ -851,8 +849,7 @@ defmodule Sequin.PostgresReplicationTest do
       # Wait for replication to process old WAL, then drain all old messages
       # The new message from the insert above will arrive after replication processes it
       Process.sleep(1000)
-      drain_changes_messages()
-      drain_flush_events()
+      drain_test_mailbox()
 
       record =
         []
@@ -862,7 +859,7 @@ defmodule Sequin.PostgresReplicationTest do
 
       start_replication!(pg_replication, slot_processor_opts: [message_handler_module: MessageHandlerMock])
 
-      drain_flush_events()
+      drain_test_mailbox()
 
       # Now receive the message from the insert above (replication will process it)
       assert_receive {:changes, [change]}, to_timeout(second: 50)
@@ -882,11 +879,9 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Wait for replication to process old WAL, then drain old messages
       Process.sleep(1000)
-      drain_changes_messages()
-      drain_flush_events()
+      drain_test_mailbox()
       :timer.sleep(1000)
-      drain_changes_messages()
-      drain_flush_events()
+      drain_test_mailbox()
 
       # Create three characters in sequence
       UnboxedRepo.transaction(fn ->
@@ -936,8 +931,7 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Wait for replication to process old WAL, then drain old messages
       Process.sleep(1000)
-      drain_change_messages()
-      drain_flush_events()
+      drain_test_mailbox()
 
       record =
         []
@@ -975,14 +969,13 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Wait for replication to process old WAL, then drain old messages
       Process.sleep(10_000)
-      drain_change_messages()
-      drain_flush_events()
+      drain_test_mailbox()
 
       # Test create
       character = CharacterFactory.insert_character_ident_full!([planet: "Caladan"], repo: UnboxedRepo)
       record = character |> Sequin.Map.from_ecto() |> Sequin.Map.stringify_keys()
 
-      drain_flush_events()
+      drain_test_mailbox()
 
       assert_receive {:change, [create_change]}, to_timeout(minute: 1)
       assert action?(create_change, :insert)
@@ -1024,8 +1017,7 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Wait for replication to process old WAL, then drain old messages
       Process.sleep(10_000)
-      drain_changes_messages()
-      drain_flush_events()
+      drain_test_mailbox()
 
       # Insert a record
       character1 = CharacterFactory.insert_character!([], repo: UnboxedRepo)
@@ -1086,10 +1078,9 @@ defmodule Sequin.PostgresReplicationTest do
 
       # Wait for replication to process old WAL, then drain old messages
       Process.sleep(1000)
-      drain_changes_messages()
-      drain_flush_events()
+      drain_test_mailbox()
       Process.sleep(500)
-      drain_flush_events()
+      drain_test_mailbox()
 
       # Insert a character to generate a message
       _character1 = CharacterFactory.insert_character!([], repo: UnboxedRepo)
@@ -1228,8 +1219,6 @@ defmodule Sequin.PostgresReplicationTest do
           Runtime.Supervisor.stop_replication(sup, pg_replication)
           # Drain any remaining messages and flush events
           drain_messages_for_slot(replication_slot())
-          drain_flush_events()
-          # Clear test process mailbox
           flush_test_mailbox()
         rescue
           _ -> :ok
@@ -1436,8 +1425,7 @@ defmodule Sequin.PostgresReplicationTest do
       end
 
       Process.sleep(1000)
-      drain_changes_messages()
-      drain_flush_events()
+      drain_test_mailbox()
 
       do_migration.()
 
@@ -1516,8 +1504,6 @@ defmodule Sequin.PostgresReplicationTest do
           Runtime.Supervisor.stop_replication(sup, pg_replication)
           # Drain any remaining messages and flush events
           drain_messages_for_slot(replication_slot())
-          drain_flush_events()
-          # Clear test process mailbox
           flush_test_mailbox()
         rescue
           _ -> :ok
@@ -1593,8 +1579,6 @@ defmodule Sequin.PostgresReplicationTest do
           Runtime.Supervisor.stop_replication(sup, pg_replication)
           # Drain any remaining messages and flush events
           drain_messages_for_slot(replication_slot())
-          drain_flush_events()
-          # Clear test process mailbox
           flush_test_mailbox()
         rescue
           _ -> :ok
@@ -1745,15 +1729,11 @@ defmodule Sequin.PostgresReplicationTest do
     wait_for_replication_ready(slot_name, 50)
     # Wait for replication to start processing old messages
     Process.sleep(1000)
-    # Drain messages and flush events multiple times to catch all old messages
     drain_messages_for_slot(slot_name)
-    drain_flush_events()
+    drain_test_mailbox()
     Process.sleep(500)
     drain_messages_for_slot(slot_name)
-    drain_flush_events()
-    Process.sleep(300)
-    # Final pass to catch any delayed flush events
-    drain_flush_events()
+    drain_test_mailbox()
   end
 
   defp wait_for_replication_ready(slot_name, retries_left) when retries_left > 0 do
@@ -1874,14 +1854,6 @@ defmodule Sequin.PostgresReplicationTest do
     messages = SlotMessageStore.peek_messages(consumer, 1000)
 
     if length(messages) > 0 do
-      # Print details about messages being drained
-
-      Enum.each(messages, fn msg ->
-        action = if msg.data, do: msg.data.action, else: :unknown
-        table_oid = msg.table_oid
-        commit_lsn = msg.commit_lsn
-      end)
-
       # Extract ack_ids and acknowledge all messages
       ack_ids = Enum.map(messages, & &1.ack_id)
 
@@ -1909,7 +1881,7 @@ defmodule Sequin.PostgresReplicationTest do
             drain_consumer_loop(consumer, retries_left - 1, stable_count + 1)
           end
 
-        {:ok, count} ->
+        {:ok, _count} ->
           # Still have messages, wait and retry
           Process.sleep(200)
           # Reset stable_count since we found messages
@@ -1937,41 +1909,50 @@ defmodule Sequin.PostgresReplicationTest do
   end
 
   @doc """
-  Drains flush events from the mailbox to clear old flush events from SlotProcessorServer.
-  This is needed because await_messages counts flush events, and old messages may have
-  already sent flush events before we drain them.
-
-  Uses stability checks similar to drain_consumer_loop to ensure all delayed events are caught.
+  Drains all messages from the test process mailbox with retry and stability checks.
+  Replaces the specific drain_changes_messages, drain_change_messages, and drain_flush_events
+  functions with a single generic drain that catches all message types.
   """
-  def drain_flush_events do
-    # Drain flush events with stability checks to catch delayed events
-    drain_flush_events_with_retry(10, 0)
+  def drain_test_mailbox do
+    drain_test_mailbox_with_retry(10, 0)
   end
 
   @doc """
-  Drains {:changes, _} messages from the mailbox to clear old messages from MessageHandlerMock.
-  This is needed for "replication in isolation" tests that use receive_messages_from_mock.
-  Uses retry mechanism to ensure all delayed messages are drained.
-  """
-  def drain_changes_messages do
-    drain_changes_messages_with_retry(10, 0)
-  end
-
-  @doc """
-  Drains {:change, _} messages from the mailbox to clear old messages from MessageHandlerMock.
-  This is specifically for tests that use {:change, msgs} pattern (singular).
-  Uses retry mechanism to ensure all delayed messages are drained.
-  """
-  def drain_change_messages do
-    drain_change_messages_with_retry(10, 0)
-  end
-
-  @doc """
-  Flushes all messages from the test process mailbox to prevent message leakage between tests.
-  This clears any messages that might have been sent to the test process but not yet received.
+  Flushes all messages from the test process mailbox instantly (no retries).
+  Use in on_exit blocks for immediate cleanup.
   """
   def flush_test_mailbox do
     flush_test_mailbox_loop(1000)
+  end
+
+  defp drain_test_mailbox_with_retry(0, _stable_count), do: :ok
+
+  defp drain_test_mailbox_with_retry(retries_left, stable_count) do
+    drained_count = flush_and_count_loop(1000, 0)
+
+    if drained_count > 0 do
+      Process.sleep(200)
+      drain_test_mailbox_with_retry(retries_left - 1, 0)
+    else
+      if stable_count >= 3 do
+        :ok
+      else
+        Process.sleep(300)
+        drain_test_mailbox_with_retry(retries_left - 1, stable_count + 1)
+      end
+    end
+  end
+
+  defp flush_and_count_loop(0, acc), do: acc
+
+  defp flush_and_count_loop(count, acc) do
+    receive do
+      _message ->
+        flush_and_count_loop(count - 1, acc + 1)
+    after
+      0 ->
+        acc
+    end
   end
 
   defp flush_test_mailbox_loop(0), do: :ok
@@ -1983,135 +1964,6 @@ defmodule Sequin.PostgresReplicationTest do
     after
       0 ->
         :ok
-    end
-  end
-
-  defp drain_changes_messages_loop(0), do: :ok
-
-  defp drain_changes_messages_loop(count) do
-    receive do
-      {:changes, _changes} ->
-        drain_changes_messages_loop(count - 1)
-    after
-      0 ->
-        :ok
-    end
-  end
-
-  defp drain_changes_messages_with_retry(0, _stable_count), do: :ok
-
-  defp drain_changes_messages_with_retry(retries_left, stable_count) do
-    # Drain all changes messages currently in mailbox
-    drained_count = drain_changes_messages_count_loop(1000, 0)
-
-    if drained_count > 0 do
-      # Found messages, reset stability and continue
-      Process.sleep(200)
-      drain_changes_messages_with_retry(retries_left - 1, 0)
-    else
-      # No messages found, check stability
-      if stable_count >= 3 do
-        # Stable for 3 consecutive checks
-        :ok
-      else
-        # Still need to verify stability
-        Process.sleep(300)
-        drain_changes_messages_with_retry(retries_left - 1, stable_count + 1)
-      end
-    end
-  end
-
-  defp drain_changes_messages_count_loop(0, acc), do: acc
-
-  defp drain_changes_messages_count_loop(count, acc) do
-    receive do
-      {:changes, changes} ->
-        drain_changes_messages_count_loop(count - 1, acc + length(changes))
-    after
-      0 ->
-        acc
-    end
-  end
-
-  defp drain_change_messages_loop(0), do: :ok
-
-  defp drain_change_messages_loop(count) do
-    receive do
-      {:change, _changes} ->
-        drain_change_messages_loop(count - 1)
-    after
-      0 ->
-        :ok
-    end
-  end
-
-  defp drain_change_messages_with_retry(0, _stable_count), do: :ok
-
-  defp drain_change_messages_with_retry(retries_left, stable_count) do
-    # Drain all change messages currently in mailbox
-    drained_count = drain_change_messages_count_loop(1000, 0)
-
-    if drained_count > 0 do
-      # Found messages, reset stability and continue
-      Process.sleep(200)
-      drain_change_messages_with_retry(retries_left - 1, 0)
-    else
-      # No messages found, check stability
-      if stable_count >= 3 do
-        # Stable for 3 consecutive checks
-        :ok
-      else
-        # Still need to verify stability
-        Process.sleep(300)
-        drain_change_messages_with_retry(retries_left - 1, stable_count + 1)
-      end
-    end
-  end
-
-  defp drain_change_messages_count_loop(0, acc), do: acc
-
-  defp drain_change_messages_count_loop(count, acc) do
-    receive do
-      {:change, changes} ->
-        drain_change_messages_count_loop(count - 1, acc + length(changes))
-    after
-      0 ->
-        acc
-    end
-  end
-
-  defp drain_flush_events_with_retry(0, _stable_count), do: :ok
-
-  defp drain_flush_events_with_retry(retries_left, stable_count) do
-    # Drain all flush events currently in mailbox
-    drained_count = drain_flush_events_loop(1000, 0)
-
-    if drained_count > 0 do
-      # Found messages, reset stability and continue
-      Process.sleep(200)
-      drain_flush_events_with_retry(retries_left - 1, 0)
-    else
-      # No messages found, check stability
-      if stable_count >= 3 do
-        # Stable for 3 consecutive checks
-        :ok
-      else
-        # Still need to verify stability
-        Process.sleep(300)
-        drain_flush_events_with_retry(retries_left - 1, stable_count + 1)
-      end
-    end
-  end
-
-  defp drain_flush_events_loop(0, acc), do: acc
-
-  defp drain_flush_events_loop(count, acc) do
-    receive do
-      {SlotProcessorServer, :flush_messages, flush_count} ->
-        drain_flush_events_loop(count - 1, acc + flush_count)
-    after
-      0 ->
-        acc
     end
   end
 
